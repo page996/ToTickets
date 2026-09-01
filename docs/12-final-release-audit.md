@@ -80,6 +80,14 @@ Tauri 进程的命令。临时截图/日志留在 `.runtime/r2-browser/`，运�
 security profile，引入服务端 `Principal/AuthContext`、设备授权、REST/WS 认证和 TLS，再
 升级 OpenAPI/错误契约并完成负向测试。
 
+## 模拟器选型结论
+
+本轮选择官方 Android Studio Emulator/AVD 作为 Gate C 和 mock 设备的首选基线，理由是
+官方 SDK/ADB、系统镜像和快照更容易版本化与复现；先验证单实例，再按宿主机资源扩大。
+Genymotion Desktop 保留为第二候选，必须先完成 EULA、许可证、版本矩阵和数据流审查；
+Genymotion Cloud 不作为默认方案。BlueStacks、雷电等闭源消费级模拟器不进入核心依赖。
+本机没有检测到 Android SDK/ADB/AVD/scrcpy，因此没有在本轮安装、启动模拟器或安装 APK。
+
 ## 明确未覆盖
 
 - 不连接或操作真实大麦 App、账号、登录、验证码、实名、订单、支付或设备输入。
