@@ -28,6 +28,13 @@ const ALLOWED_METADATA = new Set([
   'confirmation_id',
   'intent',
   'error_code',
+  'operation_id',
+  'deployment_id',
+  'provider_id',
+  'desired_state',
+  'observed_state',
+  'generation',
+  'confidence',
 ]);
 
 @Injectable()

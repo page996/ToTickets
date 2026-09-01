@@ -14,14 +14,15 @@
 | Control Plane | Audit Service | `AuditEvent` | append-only 审计 |
 | Mock Harness | Contract Tests | fixture/adapter port | 仅测试环境可自动化 |
 | Host Probe/Planner | Console/Operator | `host-probe.v1` / `provider-manifest.v1` over REST | 只读资源检查与容量估算 |
-| Deployment Controller (future) | Provider Host | versioned deployment state/events | 逐实例、幂等、需人工确认；当前未启用 |
+| Deployment Controller (mock-only) | Control Plane / Provider Host (future) | versioned deployment state/events | 当前只改进程内 mock 状态；真实 provider 逐实例、幂等、需人工确认且未启用 |
 
 任何模块不得绕过 Control Plane 直接调用 Adapter Host。UI 也不能直接调用 ADB、scrcpy 或模拟器 CLI。
 
 Host Probe 只使用操作系统资源 API 和用户明确选择的工具路径；它不通过 PATH、注册表
-或猜测目录发现工具，不启动外部进程。容量规划结果不能直接触发部署。未来 Deployment
-Controller 负责 desired/observed state、资源预留、generation 和 operation_id，并通过
-认证的 provider host 合约执行生命周期操作；在认证/TLS/RBAC/CSRF 完成前保持关闭。
+或猜测目录发现工具，不启动外部进程。容量规划结果不能直接触发部署。当前 mock-only
+Deployment Controller 负责进程内 desired/observed state、generation、operation_id 和
+脱敏事件；未来真实控制器才可通过认证的 provider host 合约执行生命周期操作，并在
+认证/TLS/RBAC/CSRF 完成前保持关闭。
 
 ## 2. 准备流程时序
 

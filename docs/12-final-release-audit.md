@@ -9,17 +9,18 @@
 ## 通过项
 
 - 本轮离线验收命令及其结果已按实际运行时间记录；旧版本测试数字和产物哈希不再作为证据。
-- 已建立首次 Git 基线提交：`6fa3bbd`（工作树在本轮文档更新前保持干净）。
-- 恢复接管后的五个基线提交和配置修复提交 `7a1fe59` 均位于 `main` 提交链；推送目标为
-  `https://github.com/page996/ToTickets`，且未使用 force push。最终远程 SHA 由本审计
-  收尾提交推送后再次核验，并在交付回执中记录。
+- 已建立首次 Git 基线提交：`6fa3bbd`；恢复接管后的基线、配置修复和主机规划提交均位于
+  `main` 提交链。
+- 本轮部署状态控制与契约测试作为收尾提交推送到
+  `https://github.com/page996/ToTickets`，未使用 force push；最终远程 SHA 在交付回执中
+  再次核验。
 
 ## 桌面回归
 
-本轮完成 Nest/Vite 构建后（API `dist` 文件时间约为 20:00 CST），于 20:24 CST 启动临时
+本轮完成 Nest/Vite 构建后（API `dist` 文件时间约为 21:30 CST），于 21:35 CST 启动临时
 loopback API 和 Vite，并使用本机 Chromium 对桌面 1440px 与移动 390px 视口进行回归。完整
-证据保存在 `.runtime/r2-final-1788265464224-a415c09b/`；其中 `r2-evidence.json` 保存
-运行时分配的 fixture 地址（API `61035`、Vite `61036`）和结果，页面、设备列表、提醒、审计
+证据保存在 `.runtime/r2-final-1788269740740-68b41ffb/`；其中 `r2-evidence.json` 保存
+运行时分配的 fixture 地址（API `58969`、Vite `58970`）和结果，页面、设备列表、提醒、审计
 视图均加载成功，稳态无 page error，REST 快照和合法 WebSocket 同步帧均成功。
 
 - 桌面四个视图：`scrollWidth=1440`（视口宽度 1440），可见控件数依次为 `11/10/9/11`，均无几何重叠。
@@ -31,7 +32,7 @@ loopback API 和 Vite，并使用本机 Chromium 对桌面 1440px 与移动 390p
 React StrictMode 首次 effect 清理会产生一次“WebSocket connection ... closed before the
 connection is established”开发模式警告；API 停机注入期间的 `ERR_CONNECTION_REFUSED`
 也被记录为预期故障证据。两者均未出现在服务恢复后的稳态页面错误中。截图和日志保存在
-本地忽略目录 `.runtime/r2-final-1788265464224-a415c09b/`，不作为版本化发布产物。Tauri 原生窗口本轮只完成
+本地忽略目录 `.runtime/r2-final-1788269740740-68b41ffb/`，不作为版本化发布产物。Tauri 原生窗口本轮只完成
 `--no-bundle` 构建，尚未替代浏览器回归作为人工窗口验收。
 
 ## 验收记录
@@ -41,11 +42,11 @@ connection is established”开发模式警告；API 停机注入期间的 `ERR_
 
 | 命令 | 结果 |
 | --- | --- |
-| `scripts/pnpm.ps1 test`（注入 `CONSOLE_TEST_API_BASE_URL`/`CONSOLE_TEST_EVENTS_URL` loopback；API 16 suites/163 tests；Console 9 files/81 tests） | 通过（含 HostProbe/容量/exposure 契约与配置路径负向测试） |
+| `scripts/pnpm.ps1 test`（注入 `CONSOLE_TEST_API_BASE_URL`/`CONSOLE_TEST_EVENTS_URL` loopback；API 18 suites/183 tests；Console 9 files/81 tests） | 通过（含 HostProbe/容量/exposure/deployment 契约与配置路径负向测试） |
 | `scripts/pnpm.ps1 typecheck`（API、Console） | 通过 |
 | `scripts/pnpm.ps1 build`（Nest/Vite） | 通过 |
 | `scripts/pnpm.ps1 test:load:mock` | 通过 |
-| `scripts/check-compliance.ps1` | 通过：112 runtime/command files，3 Node manifests，1 Rust manifest，1 config template |
+| `scripts/check-compliance.ps1` | 通过：120 runtime/command files，3 Node manifests，1 Rust manifest，1 config template |
 | `scripts/check-compliance.test.ps1` | 通过 |
 | `scripts/tests/check-compliance.Tests.ps1` | 通过 |
 | `pwsh -NoProfile -File scripts/tests/generate-sbom.Tests.ps1` | 通过：1143 components，1144 dependency nodes |
@@ -59,7 +60,10 @@ connection is established”开发模式警告；API 停机注入期间的 `ERR_
 | API 停止/重启后的控制台重连演练 | 通过；恢复后显示“控制平面在线”并重新同步 |
 
 恢复接管后新增的 API 只读端点 `GET /api/v1/hosts/probe` 与
-`GET /api/v1/hosts/providers` 已由运行时测试和 OpenAPI 契约测试覆盖。配置层现在只接受
+`GET /api/v1/hosts/providers`，以及 mock-only 部署 REST 路由，已由运行时测试和 OpenAPI
+契约测试覆盖。部署 domain 的真实 planner 拒绝会发布带 `deployment_id: null` 的
+`deployment.operation.rejected`；REST DTO 在进入 domain 前拒绝非 mock provider 时只返回
+通用 `schema.invalid`，不伪造 deployment event。配置层现在只接受
 显式选择的 `storage.data_dir`、`tools.adb`、`tools.emulator` 和 `tools.scrcpy`，未提供时
 返回 `unknown`/`not_checked`，不会从工作目录、PATH、注册表或 `ANDROID_SDK_ROOT` 猜测。
 R2 浏览器证据在上述构建完成后生成，并与当前 API dist 的时间顺序一致；它验证 mock 控制
@@ -73,7 +77,7 @@ Windows PowerShell 5.1 不支持 SBOM 脚本使用的 `.NET Path.GetRelativePath
 
 | 产物 | SHA-256 |
 | --- | --- |
-| `apps/console/src-tauri/target/release/human-assist-console.exe` | `B9906EEF1F4F7E770A52EC195ACDD58401BEC6FF338613AAC22F6C89837C830B` |
+| `apps/console/src-tauri/target/release/human-assist-console.exe` | `618215A6D377F1EA6265EC1AE9572DBC6159D25714CEF046F6F086C7CAC9478F` |
 | `sbom/human-ticketing-console.cdx.json` | `40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B` |
 
 SBOM 是开发/构建视角，覆盖 pnpm lockfile、Cargo.lock 和两个 workspace manifest；正式发布仍需按 [依赖与可复现构建文档](09-dependency-and-reproducible-build.md) 补齐运行时闭包、许可证 notice 和 build provenance。
@@ -82,7 +86,7 @@ SBOM 是开发/构建视角，覆盖 pnpm lockfile、Cargo.lock 和两个 worksp
 
 本轮 R2 动态 API、重启 API、Vite 进程树和浏览器均已按目标精确关闭；证据 fixture 的端口
 已无监听（仅可能存在 TCP `TIME_WAIT`）。未使用按名称批量终止 Node、Rust 或 Tauri 进程的
-命令。临时截图/日志留在 `.runtime/r2-final-1788265464224-a415c09b/`，运行态
+命令。临时截图/日志留在 `.runtime/r2-final-1788269740740-68b41ffb/`，运行态
 数据未进入 Git。
 
 ## 远程扩展前置条件

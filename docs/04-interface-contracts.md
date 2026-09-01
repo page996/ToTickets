@@ -147,7 +147,93 @@
 和人工验收后才能确认。远程 provider 不得在响应或日志中出现云凭据、项目令牌或
 真实账号信息。
 
-### 3.6 人工确认票据
+### 3.6 部署状态 domain 与 mock-only REST 契约
+
+当前实现位于 `apps/api/src/deployments/`，决策记录见
+`docs/adr/0005-mock-deployment-state-boundary.md`；只提供进程内 `DeploymentService`、内存
+repository、严格 DTO 和 `DeploymentController`。控制器已接入 API，并在
+`docs/openapi.v1.json` 中登记；但它只暴露 mock 状态模型，绝不代表真实 provider 已部署。
+本节同时记录二次开发所需的稳定语义与当前 REST 边界。
+
+记录的固定边界如下：
+
+| 字段 | 约束 |
+| --- | --- |
+| `provider_id` | REST DTO 只接受 `mock-adapter`；AVD、USB、远程串流等值在 DTO 层以 `422 schema.invalid` fail fast，当前不进入控制器服务调用 |
+| `execution_mode` | REST DTO 只接受 `mock_only`；`live`/生产执行模式在 DTO 层以 `422 schema.invalid` fail fast，当前不进入控制器服务调用 |
+| `planning_only` / `side_effects` | 固定为 `true` / `none` |
+| `operator_confirmed` | 所有 mock 写操作请求体必须显式为 `true`；这是人工确认意图的记录，不是身份认证或真实授权的替代 |
+| `desired_state` | `stopped`、`ready`、`released` |
+| `observed_state` | `planned`、`validating`、`capacity_reserved`、`provisioning`、`starting`、`ready`、`degraded`、`failed`、`stopping`、`stopped`、`released` |
+| `generation` | 从 1 开始；每次接受的状态或 desired-state 变化单调递增 |
+| `operation_id` | 关联产生当前快照的操作；显式值限 `[A-Za-z0-9._:-]{8,128}`，省略时由服务端生成 |
+
+内部操作是：
+
+| 操作 | 语义 |
+| --- | --- |
+| `plan` | 请求必须含 `operator_confirmed=true`；接受 planner 提供且与实例数一致的容量快照，创建 `planned` 记录；不锁定资源 |
+| `validate` | 请求必须含 `operator_confirmed=true`；用 `expected_generation` 校验快照，将 `planned`/`failed`/`degraded` 推进到 `capacity_reserved`；不启动进程 |
+| `transition` | 请求必须含 `operator_confirmed=true`；仅按版本化迁移表修改 observed state；`ready` 不代表真实设备或第三方 App 就绪 |
+| `setDesiredState` | 请求必须含 `operator_confirmed=true`；独立修改 desired state，不能伪造 observed state 或触发 provider 命令 |
+
+状态迁移表保留 `validating`、`provisioning` 和 `starting` 供未来异步 provider host 使用；
+当前同步 mock `validate` 直接从 `planned`/`failed`/`degraded` 进入 `capacity_reserved`，
+不会因此产生外部资源预留或进程启动。
+
+容量快照必须由 Host Planner 注入，包含请求数、保守 `safe_instances`、
+`effective_instances`、启动并发和 `confidence`（`measured`/`estimated`/`unknown`）；
+不能由未来公开客户端直接提交主机资源声明。记录不含可执行路径、shell 参数、凭据、
+设备序列号或输入能力。
+
+同一部署记录的操作串行化。当前 mock REST 写请求必须带 `Idempotency-Key` 和
+`operator_confirmed=true`；除 `plan` 外
+的状态变更请求还必须带匹配的 `expected_generation`，而 `plan` 由服务端从 Host Planner
+注入容量快照。这些操作没有设备外部副作用，因此不使用设备命令确认票据；`X-Operator-Id`
+在当前 loopback 可信本机模型下只用于脱敏审计关联，不是认证。若将来把状态控制接到真实 provider，所有写请求
+必须再经过服务端签发的人工确认、授权和 provider-host allowlist。当前内部测试也可直接
+调用 domain 方法，因此不等同于人工确认。成功与拒绝均写入脱敏审计；状态变化和拒绝分别
+发布 `deployment.state.changed`、`deployment.operation.rejected` CloudEvents。REST payload
+已纳入 OpenAPI；mock 事件 payload schema 已落在
+`docs/schemas/deployment-state-changed.v1.json` 与
+`docs/schemas/deployment-operation-rejected.v1.json`，不构成真实 provider 的执行授权。
+
+校验分层必须保持可区分：公开 REST 请求先经过严格 DTO。`provider_id` 或
+`execution_mode` 传入非允许枚举值时，`ValidationPipe` 直接返回 HTTP 422
+`schema.invalid`；全局 `ApiExceptionFilter` 只记录通用控制平面拒绝审计，
+请求不会调用 `DeploymentService`，因此不会由该领域服务发布拒绝事件。
+`DeploymentService.plan()` 仍对内部调用者重复执行 provider、执行模式和 manifest 检查；
+绕过 DTO 的非法调用抛出 HTTP 语义上的 `policy.denied`（403），并记录
+`deployment.operation.rejected`（`deployment_id: null`）审计/事件。后者是领域防御和
+契约测试语义，不应被描述为 REST 创建端点对非法枚举的响应。
+
+当前 domain 的错误复用既有错误码：容量不足为可重试 `device.busy`，generation 过期为
+`command.stale`，未知字段或非法迁移为 `schema.invalid`，同 operation id 不同指纹为
+`idempotency.replay`，不存在的记录暂映射为 `request.invalid`/404；公开 wire 合约冻结时
+应再评审是否引入专用 `deployment.*` 错误码。
+
+当前已启用的 mock-only 路径为：
+
+| 方法 | 路径 | 备注 |
+| --- | --- | --- |
+| GET | `/deployments` | 列出 mock-only 脱敏状态快照 |
+| POST | `/deployments/plan` | 创建 mock-only 计划；容量由 Host Planner 注入 |
+| GET | `/deployments/{deployment_id}` | 读取 mock-only 脱敏状态快照 |
+| POST | `/deployments/{deployment_id}/validate` | 校验容量和 generation，不锁定真实资源 |
+| POST | `/deployments/{deployment_id}/transition` | 推进 mock observed state |
+| POST | `/deployments/{deployment_id}/desired-state` | 修改 mock desired state |
+
+尚未启用的扩展路径包括 `GET /hosts/{host_id}/capabilities` 以及任何真实 provider
+生命周期端点。
+
+这些路径中的 `/api/v1` 只是协议前缀，不是部署地址。当前 mock 路由仍只允许 loopback，
+且状态 `ready` 只表示模拟观察值。只有在认证、TLS、RBAC、CSRF、WebSocket 握手认证、
+设备授权、人工确认和 provider-host allowlist 全部完成并增加负向契约测试后，才能启用真实
+provider；不得通过修改 `bind_host` 绕过前置条件。OpenAPI/REST 路由的请求、响应、错误和
+幂等行为由 `apps/api/test/openapi-contract.spec.ts` 覆盖；两个 deployment v1 事件 schema
+由 `apps/api/test/event-contracts.spec.ts` 覆盖，真实 provider 适配器仍是后续门槛。
+
+### 3.7 人工确认票据
 
 设备生命周期、只读预览、焦点切换和急停均使用服务端签发的一次性票据。控制台显示确认对话框后，先提交：
 
@@ -240,6 +326,8 @@ schema 文件名由事件 `type` 将非字母数字字符替换为 `-` 后追加
 | `clock.uncertain` | `docs/schemas/clock-uncertain.v1.json` |
 | `reminder.fired` | `docs/schemas/reminder-fired.v1.json` |
 | `reminder.dispatch.failed` | `docs/schemas/reminder-dispatch-failed.v1.json` |
+| `deployment.state.changed` | `docs/schemas/deployment-state-changed.v1.json` |
+| `deployment.operation.rejected` | `docs/schemas/deployment-operation-rejected.v1.json` |
 
 上述 payload schema 均为严格对象 schema，要求 `sequence` 事件游标并拒绝未知字段。
 

@@ -25,6 +25,7 @@ interface ObjectSchema {
 
 const DEVICE_ID = '00000000-0000-4000-8000-000000000001';
 const SCHEDULE_ID = '00000000-0000-4000-8000-000000000002';
+const DEPLOYMENT_ID = '00000000-0000-4000-8000-000000000003';
 const SCHEMA_DIRECTORY = resolve(__dirname, '../../../docs/schemas');
 
 const EVENT_FIXTURES: Array<{
@@ -91,6 +92,56 @@ const EVENT_FIXTURES: Array<{
     type: 'reminder.dispatch.failed',
     subject: `schedule/${SCHEDULE_ID}`,
     data: { schedule_id: SCHEDULE_ID, reminder_index: 0 },
+  },
+  {
+    type: 'deployment.state.changed',
+    subject: `deployment/${DEPLOYMENT_ID}`,
+    data: {
+      deployment_id: DEPLOYMENT_ID,
+      provider_id: 'mock-adapter',
+      execution_mode: 'mock_only',
+      planning_only: true,
+      side_effects: 'none',
+      desired_state: 'ready',
+      observed_state: 'planned',
+      generation: 1,
+      operation_id: 'event-contract-operation',
+      capacity_snapshot: {
+        requested_instances: 1,
+        safe_instances: 2,
+        effective_instances: 2,
+        startup_concurrency: 1,
+        confidence: 'estimated',
+      },
+      created_at: '2030-01-01T00:00:00.000Z',
+      updated_at: '2030-01-01T00:00:00.000Z',
+    },
+  },
+  {
+    type: 'deployment.operation.rejected',
+    subject: `deployment/${DEPLOYMENT_ID}`,
+    data: {
+      deployment_id: DEPLOYMENT_ID,
+      operation_id: 'event-contract-rejected',
+      command: 'deployment.validate',
+      reason: 'stale generation',
+      error_code: 'command.stale',
+      planning_only: true,
+      side_effects: 'none',
+    },
+  },
+  {
+    type: 'deployment.operation.rejected',
+    subject: 'deployment/unassigned',
+    data: {
+      deployment_id: null,
+      operation_id: 'event-contract-unassigned',
+      command: 'deployment.plan',
+      reason: 'policy.denied',
+      error_code: 'policy.denied',
+      planning_only: true,
+      side_effects: 'none',
+    },
   },
 ];
 

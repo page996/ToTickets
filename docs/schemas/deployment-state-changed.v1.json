@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/deployment-state-changed.v1.json",
+  "title": "DeploymentStateChangedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sequence",
+    "deployment_id",
+    "provider_id",
+    "execution_mode",
+    "planning_only",
+    "side_effects",
+    "desired_state",
+    "observed_state",
+    "generation",
+    "operation_id",
+    "capacity_snapshot",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "sequence": { "type": "integer", "minimum": 1 },
+    "deployment_id": { "type": "string", "format": "uuid" },
+    "provider_id": { "const": "mock-adapter" },
+    "execution_mode": { "const": "mock_only" },
+    "planning_only": { "const": true },
+    "side_effects": { "const": "none" },
+    "desired_state": { "enum": ["stopped", "ready", "released"] },
+    "observed_state": { "enum": ["planned", "validating", "capacity_reserved", "provisioning", "starting", "ready", "degraded", "failed", "stopping", "stopped", "released"] },
+    "generation": { "type": "integer", "minimum": 1 },
+    "operation_id": { "type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+    "capacity_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requested_instances", "safe_instances", "effective_instances", "startup_concurrency", "confidence"],
+      "properties": {
+        "requested_instances": { "type": "integer", "minimum": 1 },
+        "safe_instances": { "type": "integer", "minimum": 0 },
+        "effective_instances": { "type": "integer", "minimum": 0 },
+        "startup_concurrency": { "type": "integer", "minimum": 0 },
+        "confidence": { "enum": ["measured", "estimated", "unknown"] }
+      }
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" }
+  }
+}

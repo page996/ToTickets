@@ -9,6 +9,7 @@
   "tags": [
     { "name": "Health" },
     { "name": "Hosts" },
+    { "name": "Deployments" },
     { "name": "Devices" },
     { "name": "Schedules" },
     { "name": "Safety" },
@@ -71,6 +72,129 @@
         "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
         "responses": {
           "200": { "$ref": "#/components/responses/HostProviders" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/deployments": {
+      "get": {
+        "operationId": "listDeployments",
+        "tags": ["Deployments"],
+        "summary": "List mock-only deployment state snapshots",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/DeploymentList" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/deployments/plan": {
+      "post": {
+        "operationId": "planDeployment",
+        "tags": ["Deployments"],
+        "summary": "Create a side-effect-free mock deployment plan",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" },
+          { "$ref": "#/components/parameters/OperatorIdHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentPlanRequest" } } }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Deployment" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/deployments/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/DeploymentIdPath" }],
+      "get": {
+        "operationId": "getDeployment",
+        "tags": ["Deployments"],
+        "summary": "Read one mock-only deployment snapshot",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Deployment" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/deployments/{id}/validate": {
+      "parameters": [{ "$ref": "#/components/parameters/DeploymentIdPath" }],
+      "post": {
+        "operationId": "validateDeployment",
+        "tags": ["Deployments"],
+        "summary": "Validate a plan and reserve its estimated mock capacity",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" },
+          { "$ref": "#/components/parameters/OperatorIdHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentValidateRequest" } } }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Deployment" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/deployments/{id}/transition": {
+      "parameters": [{ "$ref": "#/components/parameters/DeploymentIdPath" }],
+      "post": {
+        "operationId": "transitionDeployment",
+        "tags": ["Deployments"],
+        "summary": "Advance one mock deployment through its explicit observed state machine",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" },
+          { "$ref": "#/components/parameters/OperatorIdHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentTransitionRequest" } } }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Deployment" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/deployments/{id}/desired-state": {
+      "parameters": [{ "$ref": "#/components/parameters/DeploymentIdPath" }],
+      "post": {
+        "operationId": "setDeploymentDesiredState",
+        "tags": ["Deployments"],
+        "summary": "Change desired mock deployment state without starting a provider",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" },
+          { "$ref": "#/components/parameters/OperatorIdHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentDesiredStateRequest" } } }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Deployment" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
           "500": { "$ref": "#/components/responses/InternalError" }
         }
       }
@@ -604,6 +728,12 @@
         "in": "path",
         "required": true,
         "schema": { "$ref": "#/components/schemas/UuidV4" }
+      },
+      "DeploymentIdPath": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/UuidV4" }
       }
     },
     "headers": {
@@ -637,6 +767,16 @@
         "description": "Planning-only provider profiles and conservative capacity estimates.",
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HostProvidersResponse" } } }
+      },
+      "Deployment": {
+        "description": "A mock-only deployment state snapshot; no host process or device input is started.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentResponse" } } }
+      },
+      "DeploymentList": {
+        "description": "Mock-only deployment state snapshots.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeploymentListResponse" } } }
       },
       "Device": {
         "description": "Device snapshot.",
@@ -1262,6 +1402,118 @@
           "manifests": { "type": "array", "items": { "$ref": "#/components/schemas/ProviderManifest" } },
           "capacity": { "type": "array", "items": { "$ref": "#/components/schemas/ProviderCapacity" } },
           "planning": { "const": "estimated_until_ramp_test" }
+        }
+      },
+      "DeploymentDesiredState": {
+        "type": "string",
+        "enum": ["stopped", "ready", "released"]
+      },
+      "DeploymentObservedState": {
+        "type": "string",
+        "enum": ["planned", "validating", "capacity_reserved", "provisioning", "starting", "ready", "degraded", "failed", "stopping", "stopped", "released"]
+      },
+      "DeploymentCapacitySnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["requested_instances", "safe_instances", "effective_instances", "startup_concurrency", "confidence"],
+        "properties": {
+          "requested_instances": { "type": "integer", "minimum": 1 },
+          "safe_instances": { "type": "integer", "minimum": 0 },
+          "effective_instances": { "type": "integer", "minimum": 0 },
+          "startup_concurrency": { "type": "integer", "minimum": 0 },
+          "confidence": { "type": "string", "enum": ["measured", "estimated", "unknown"] }
+        }
+      },
+      "DeploymentResource": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "provider_id", "execution_mode", "planning_only", "side_effects", "desired_state", "observed_state", "generation", "operation_id", "capacity_snapshot", "created_at", "updated_at"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/UuidV4" },
+          "provider_id": { "const": "mock-adapter" },
+          "execution_mode": { "const": "mock_only" },
+          "planning_only": { "const": true },
+          "side_effects": { "const": "none" },
+          "desired_state": { "$ref": "#/components/schemas/DeploymentDesiredState" },
+          "observed_state": { "$ref": "#/components/schemas/DeploymentObservedState" },
+          "generation": { "type": "integer", "minimum": 1 },
+          "operation_id": { "type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+          "capacity_snapshot": { "$ref": "#/components/schemas/DeploymentCapacitySnapshot" },
+          "created_at": { "$ref": "#/components/schemas/DateTime" },
+          "updated_at": { "$ref": "#/components/schemas/DateTime" }
+        }
+      },
+      "DeploymentPlanRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operator_confirmed", "provider_id", "execution_mode", "desired_state", "instances"],
+        "properties": {
+          "operator_confirmed": { "const": true },
+          "provider_id": { "const": "mock-adapter" },
+          "execution_mode": { "const": "mock_only" },
+          "desired_state": { "$ref": "#/components/schemas/DeploymentDesiredState" },
+          "instances": { "type": "integer", "minimum": 1, "maximum": 64 }
+        }
+      },
+      "DeploymentValidateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operator_confirmed", "expected_generation"],
+        "properties": {
+          "operator_confirmed": { "const": true },
+          "expected_generation": { "type": "integer", "minimum": 1 },
+          "operation_id": { "type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" }
+        }
+      },
+      "DeploymentTransitionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operator_confirmed", "observed_state", "expected_generation"],
+        "properties": {
+          "operator_confirmed": { "const": true },
+          "observed_state": { "$ref": "#/components/schemas/DeploymentObservedState" },
+          "expected_generation": { "type": "integer", "minimum": 1 },
+          "operation_id": { "type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" }
+        }
+      },
+      "DeploymentDesiredStateRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operator_confirmed", "desired_state", "expected_generation"],
+        "properties": {
+          "operator_confirmed": { "const": true },
+          "desired_state": { "$ref": "#/components/schemas/DeploymentDesiredState" },
+          "expected_generation": { "type": "integer", "minimum": 1 },
+          "operation_id": { "type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" }
+        }
+      },
+      "DeploymentResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "id", "provider_id", "execution_mode", "planning_only", "side_effects", "desired_state", "observed_state", "generation", "operation_id", "capacity_snapshot", "created_at", "updated_at"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "id": { "$ref": "#/components/schemas/UuidV4" },
+          "provider_id": { "const": "mock-adapter" },
+          "execution_mode": { "const": "mock_only" },
+          "planning_only": { "const": true },
+          "side_effects": { "const": "none" },
+          "desired_state": { "$ref": "#/components/schemas/DeploymentDesiredState" },
+          "observed_state": { "$ref": "#/components/schemas/DeploymentObservedState" },
+          "generation": { "type": "integer", "minimum": 1 },
+          "operation_id": { "type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+          "capacity_snapshot": { "$ref": "#/components/schemas/DeploymentCapacitySnapshot" },
+          "created_at": { "$ref": "#/components/schemas/DateTime" },
+          "updated_at": { "$ref": "#/components/schemas/DateTime" }
+        }
+      },
+      "DeploymentListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "items"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/DeploymentResource" } }
         }
       },
       "CapacityMetric": {

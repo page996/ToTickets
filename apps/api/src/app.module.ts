@@ -11,6 +11,7 @@ import { DeviceModule } from './devices/device.module';
 import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
 import { HostModule } from './hosts/host.module';
+import { DeploymentModule } from './deployments/deployment.module';
 import { SafetyModule } from './safety/safety.module';
 import { ScheduleModule } from './schedules/schedule.module';
 
@@ -25,6 +26,7 @@ import { ScheduleModule } from './schedules/schedule.module';
     EventsModule,
     HealthModule,
     HostModule,
+    DeploymentModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: PolicyGuard },

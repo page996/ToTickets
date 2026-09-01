@@ -110,6 +110,6 @@ manifest。不得从 PATH、注册表或用户目录猜测工具，不执行 APK
 中的 `user_input` 与 `automation` 永远为 `false`。
 
 独立性：HostService 的容量函数可以脱离 Android SDK、设备和网络进行单元测试；
-不同宿主机只提供 probe 输入，不改变控制平面协议。当前仅开放 `/hosts/probe` 和
-`/hosts/providers` 两个 GET 端点，真实部署状态控制留待认证/TLS/RBAC 和 Gate C
-通过后实现。
+不同宿主机只提供 probe 输入，不改变控制平面协议。当前开放 `/hosts/probe`、
+`/hosts/providers` 只读端点，以及仅管理进程内 mock 状态的 `/deployments*` REST
+端点；真实 provider 的部署状态控制仍留待认证/TLS/RBAC 和 Gate C 通过后实现。

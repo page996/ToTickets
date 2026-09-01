@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/deployment-operation-rejected.v1.json",
+  "title": "DeploymentOperationRejectedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sequence",
+    "deployment_id",
+    "operation_id",
+    "command",
+    "reason",
+    "error_code",
+    "planning_only",
+    "side_effects"
+  ],
+  "properties": {
+    "sequence": { "type": "integer", "minimum": 1 },
+    "deployment_id": {
+      "oneOf": [
+        { "type": "string", "format": "uuid" },
+        { "type": "null" }
+      ]
+    },
+    "operation_id": { "type": "string", "minLength": 8, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+    "command": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$" },
+    "reason": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "error_code": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9._:-]+$" },
+    "planning_only": { "const": true },
+    "side_effects": { "const": "none" }
+  }
+}

@@ -5,7 +5,11 @@
 已由仓库实现和测试确认：pnpm workspace 与隔离工具链、NestJS mock 控制平面、
 Tauri + React 控制台基线、内存 repository、`MockDeviceAdapter`、严格且仅允许
 loopback 监听的 `runtime-config.v3` 加载与 schema、REST/WebSocket 基线、当前事件 payload schema
-及契约测试、人工确认/幂等/有界并发和健康诊断。
+及契约测试、人工确认/幂等/有界并发和健康诊断。新增的部署 domain 也已完成
+mock-only 状态控制基线：`desired_state`/`observed_state`、`generation`、`operation_id`、
+容量快照、幂等、审计和 CloudEvents 状态通知均在进程内验证；它不启动外部进程，
+通过 mock-only `DeploymentController` 暴露有限 REST 路由，并已纳入 OpenAPI 契约测试；
+这些路由不启动外部进程。
 
 阶段 1、阶段 2 和阶段 2.5 已有可运行基线；本轮 R1 离线门禁和 R2 loopback
 浏览器回归已完成并记录在 `docs/12-final-release-audit.md`。这只证明 mock-first
@@ -17,7 +21,7 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
 首次 Git 基线提交并推送到用户指定的 `page996/ToTickets`。
 
 明确待办：认证/TLS/RBAC/CSRF、持久化 SQLite repository、真实设备的只读 Android
-适配器、部署状态控制器、Tauri 原生窗口人工验收、发布级运行时 SBOM/provenance
+适配器、面向真实 provider host 的认证控制器与跨进程恢复、Tauri 原生窗口人工验收、发布级运行时 SBOM/provenance
 和签名安装包。
 上述安全控制完成前不得进行非 loopback 部署；真实适配器仍不得包含任何设备输入
 或购票自动化能力。
@@ -36,11 +40,18 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
 - 建立 NestJS + TypeScript workspace，提供 `/api/v1` 和 WebSocket。
 - 实现 `MockDeviceAdapter`、设备状态机、提醒服务、审计和策略拒绝基线。
 - 建立严格配置/事件 JSON Schema、契约测试、本地开发脚本、项目本地 Node/pnpm/Rust 工具链和依赖清单；不使用系统运行时作为隐含前提。
+- 建立 mock-only `DeploymentService` 与进程内 repository：规划、校验、观察状态迁移和
+  desired state 更新均带 `generation`/`operation_id`，使用幂等、串行化、审计和 CloudEvents；
+  provider/执行模式固定为 `mock-adapter`/`mock_only`，记录明确标记 `planning_only=true`、
+  `side_effects=none`。
 
 待完成：
 
-- 用持久化 SQLite repository 替换当前有界内存 repository，并完成迁移、恢复和保留策略验证。
-- 继续补齐 REST schema 细节、审计哈希链和发布级验收证据。
+- 用持久化 SQLite repository 替换当前有界内存 repository（包括部署记录），并完成迁移、恢复和保留策略验证。
+- 继续补齐其他 REST schema 细节、审计哈希链和发布级验收证据。
+- 持续维护部署事件的版本化 REST/WS payload schema，并将当前 mock REST 控制器的错误/审计
+  语义纳入持续契约测试；在认证、授权、CSRF、provider host allowlist 和人工确认闸门
+  完成前，不把状态控制器接入真实进程。
 
 退出条件：Gate A/B 通过；没有真实平台网络访问和敏感字段。
 
@@ -79,12 +90,22 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
 - `loopback.v1` exposure profile 集中边界；未来认证/TLS profile 仅描述，不可直接启用。
 - `GET /api/v1/hosts/probe` 与 `GET /api/v1/hosts/providers` 的 OpenAPI、运行时和
   纯函数测试。
+- mock-only deployment state domain（`plan`、`validate`、`transition`、desired-state
+  更新）的单元/负向测试：容量快照必须由 planner 提供，过量实例、未知字段、非法状态、
+  过期 generation、operation 冲突和非 mock provider 均 fail closed；状态记录不包含路径、
+  凭据或命令参数。
+- 部署状态边界已记录在 `docs/adr/0005-mock-deployment-state-boundary.md`，明确 DTO
+  fail-fast 与 domain 防御检查的分层，以及真实 provider 的后续安全门槛。
+- `DeploymentController` 的 mock REST 路由及 OpenAPI 请求/响应契约测试；所有写路由要求
+  `Idempotency-Key` 与 `operator_confirmed=true`，状态路由校验 `expected_generation`，
+  响应/事件只包含脱敏状态。
 
 待完成：
 
 - 目标宿主机上的虚拟化后端、GPU/VRAM、目标 AVD 数据卷和网络/USB 带宽专用检查。
-- desired/observed deployment state、generation、operation_id 和审计控制器；在
-  认证/TLS/RBAC/CSRF 与 provider 命令 allowlist 完成前不启动外部实例。
+- 将当前 mock-only 控制器扩展为真实 provider 的公开、版本化部署状态控制器，并补齐
+  认证/TLS/RBAC/CSRF、provider 命令 allowlist、设备授权和跨进程 provider host 合约；
+  在这些门槛完成前不启动 ADB、模拟器、scrcpy 或任何第三方应用。
 - Gate C 单实例人工观察及随后 2/4 实例 ramp test；测试结果才能替换估算 profile。
 
 详细规则见 `docs/13-host-preflight-and-deployment.md`。

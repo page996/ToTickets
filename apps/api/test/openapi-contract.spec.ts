@@ -198,6 +198,85 @@ describe('OpenAPI 3.1 REST contract', () => {
       await request(app.getHttpServer()).get('/api/v1/hosts/providers'),
     );
 
+    const deploymentPlanPayload = {
+      operator_confirmed: true,
+      provider_id: 'mock-adapter',
+      execution_mode: 'mock_only',
+      desired_state: 'ready',
+      instances: 1,
+    };
+    expectRequestValid('post', '/api/v1/deployments/plan', deploymentPlanPayload);
+    const plannedDeployment = capture(
+      'post',
+      '/api/v1/deployments/plan',
+      await request(app.getHttpServer())
+        .post('/api/v1/deployments/plan')
+        .set('Idempotency-Key', 'openapi-deployment-plan')
+        .set('X-Operator-Id', 'contract-operator')
+        .send(deploymentPlanPayload),
+    );
+    const deploymentId = String(plannedDeployment.body.id);
+    capture(
+      'get',
+      '/api/v1/deployments',
+      await request(app.getHttpServer()).get('/api/v1/deployments'),
+    );
+    capture(
+      'get',
+      '/api/v1/deployments/{id}',
+      await request(app.getHttpServer()).get(`/api/v1/deployments/${deploymentId}`),
+    );
+
+    const validateDeploymentPayload = {
+      operator_confirmed: true,
+      expected_generation: plannedDeployment.body.generation,
+      operation_id: 'openapi-deployment-validate',
+    };
+    expectRequestValid('post', '/api/v1/deployments/{id}/validate', validateDeploymentPayload);
+    const validatedDeployment = capture(
+      'post',
+      '/api/v1/deployments/{id}/validate',
+      await request(app.getHttpServer())
+        .post(`/api/v1/deployments/${deploymentId}/validate`)
+        .set('Idempotency-Key', 'openapi-deployment-validate')
+        .set('X-Operator-Id', 'contract-operator')
+        .send(validateDeploymentPayload),
+    );
+
+    const transitionDeploymentPayload = {
+      operator_confirmed: true,
+      observed_state: 'ready',
+      expected_generation: validatedDeployment.body.generation,
+      operation_id: 'openapi-deployment-ready',
+    };
+    expectRequestValid('post', '/api/v1/deployments/{id}/transition', transitionDeploymentPayload);
+    const readyDeployment = capture(
+      'post',
+      '/api/v1/deployments/{id}/transition',
+      await request(app.getHttpServer())
+        .post(`/api/v1/deployments/${deploymentId}/transition`)
+        .set('Idempotency-Key', 'openapi-deployment-ready')
+        .set('X-Operator-Id', 'contract-operator')
+        .send(transitionDeploymentPayload),
+    );
+
+    const desiredStatePayload = {
+      operator_confirmed: true,
+      desired_state: 'stopped',
+      expected_generation: readyDeployment.body.generation,
+      operation_id: 'openapi-deployment-stop',
+    };
+    expectRequestValid('post', '/api/v1/deployments/{id}/desired-state', desiredStatePayload);
+    capture(
+      'post',
+      '/api/v1/deployments/{id}/desired-state',
+      await request(app.getHttpServer())
+        .post(`/api/v1/deployments/${deploymentId}/desired-state`)
+        .set('Idempotency-Key', 'openapi-deployment-stop')
+        .set('X-Operator-Id', 'contract-operator')
+        .send(desiredStatePayload),
+    );
+
     const registration = {
       alias: 'OpenAPI mock device',
       provider: 'mock-adapter',
