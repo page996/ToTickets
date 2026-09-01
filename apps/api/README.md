@@ -32,9 +32,14 @@ uses `${NAME}` placeholders for deployment-specific values, but placeholders are
 not mandatory: literal values are accepted wherever the versioned schema permits
 them. Any placeholder that is present is expanded from the environment at startup,
 and unresolved or empty placeholders fail closed. A `CONTROL_CONFIG_FILE` is a
-complete configuration and must include `storage` and `tools`; those sections are
-validated deployment metadata but are not consumed by the current bounded
-in-memory API adapters.
+complete configuration and must include `storage` and `tools`. The loader exposes
+their normalized values to the host-readiness service: `storage.data_dir` is used
+as the explicit filesystem target for the disk probe, and each configured
+`tools.*` value is checked as the selected executable. Missing host paths are
+allowed only in environment-only mode and produce `unknown`/`not_checked` probe
+results; the service never falls back to `PATH`, an SDK root, a registry entry or
+a guessed user directory. Paths are normalized with the host Node runtime and
+are never returned in API responses.
 
 Integer fields in JSON must be JSON integers or integer placeholders. Placeholder
 values and API-only environment integer values are parsed at the environment
@@ -80,8 +85,21 @@ POLICY_VERSION                # non-empty policy identifier
 When using the complete example file, it additionally references these deployment
 placeholders: `CONSOLE_ORIGIN` (one origin in the example array),
 `PROJECT_DATA_DIR`, `PROJECT_LOG_DIR`, `ANDROID_ADB_PATH`, `SCRCPY_PATH`, and
-`ANDROID_EMULATOR_PATH`. Values are deployment inputs only; the repository does not
-guess system paths or executable locations.
+`ANDROID_EMULATOR_PATH`. In environment-only mode, the same host variables are
+optional and may be supplied independently:
+
+```text
+PROJECT_DATA_DIR        # optional explicit disk-probe target
+PROJECT_LOG_DIR         # optional reserved for the persistence provider
+ANDROID_ADB_PATH        # optional explicit adb executable
+SCRCPY_PATH             # optional explicit scrcpy executable
+ANDROID_EMULATOR_PATH   # optional explicit emulator executable
+```
+
+Values are deployment inputs only; the repository does not guess system paths or
+executable locations. A complete configuration still requires `storage.data_dir`,
+`storage.log_dir`, `tools.adb` and `tools.scrcpy` according to the versioned schema;
+`tools.emulator` remains optional.
 
 Use the repository's isolated toolchain wrappers and workspace lockfile. Do not install these dependencies globally.
 

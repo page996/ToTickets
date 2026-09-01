@@ -1,7 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { statSync, statfsSync } from 'node:fs';
 import * as os from 'node:os';
-import { join } from 'node:path';
 import { providerManifest, PROVIDER_MANIFESTS } from './provider-manifests';
 import { RUNTIME_CONFIG, RuntimeConfig } from '../config/runtime-config';
 import {
@@ -22,7 +21,7 @@ export class HostService {
   constructor(@Inject(RUNTIME_CONFIG) private readonly config: RuntimeConfig) {}
 
   probe(): HostProbeReport {
-    const resources = collectResources();
+    const resources = collectResources(this.config.storage?.dataDir);
     return {
       schema: 'host-probe.v1',
       collectedAt: new Date().toISOString(),
@@ -38,9 +37,9 @@ export class HostService {
         gpu: resources.vramMib === null
           ? unknownCheck('GPU/VRAM is not queried by the side-effect-free Node probe')
           : resourceCheck(resources.vramMib, 512, 'MiB'),
-        adb: toolCheck('ANDROID_ADB_PATH', 'ANDROID_SDK_ROOT', 'platform-tools'),
-        emulator: toolCheck('ANDROID_EMULATOR_PATH', 'ANDROID_SDK_ROOT', 'emulator'),
-        scrcpy: toolCheck('SCRCPY_PATH'),
+        adb: toolCheck(this.config.tools?.adb, 'tools.adb'),
+        emulator: toolCheck(this.config.tools?.emulator, 'tools.emulator'),
+        scrcpy: toolCheck(this.config.tools?.scrcpy, 'tools.scrcpy'),
       },
       sideEffects: 'none',
     };
@@ -51,7 +50,7 @@ export class HostService {
     capacity: readonly ProviderCapacity[];
     planning: 'estimated_until_ramp_test';
   } {
-    const resources = collectResources();
+    const resources = collectResources(this.config.storage?.dataDir);
     return {
       manifests: PROVIDER_MANIFESTS,
       capacity: PROVIDER_MANIFESTS.map((manifest) => calculateProviderCapacity(
@@ -64,13 +63,15 @@ export class HostService {
   }
 }
 
-export function collectResources(): HostResourceSnapshot {
+export function collectResources(storageDataDir?: string): HostResourceSnapshot {
   let diskFreeGib: number | null = null;
-  try {
-    const stats = statfsSync(process.cwd());
-    diskFreeGib = round(stats.bavail * stats.bsize / (1024 ** 3));
-  } catch {
-    // Disk probes are platform-dependent; unknown is safer than a guessed path.
+  if (storageDataDir) {
+    try {
+      const stats = statfsSync(storageDataDir);
+      diskFreeGib = round(stats.bavail * stats.bsize / (1024 ** 3));
+    } catch {
+      // Disk probes are platform-dependent; unknown is safer than a guessed path.
+    }
   }
   return {
     cpuThreads: Math.max(1, os.cpus().length),
@@ -141,20 +142,11 @@ function unknownCheck(remediation: string): HostCheck {
   return { status: 'unknown', remediation, source: 'side-effect-free probe' };
 }
 
-function toolCheck(
-  variableName: string,
-  sdkRootVariable?: string,
-  sdkRelativeDirectory?: string,
-): HostCheck {
-  const explicit = process.env[variableName]?.trim();
-  const sdkRoot = sdkRootVariable ? process.env[sdkRootVariable]?.trim() : undefined;
-  const candidate = explicit || (sdkRoot && sdkRelativeDirectory
-    ? join(sdkRoot, sdkRelativeDirectory, process.platform === 'win32' ? `${toolName(variableName)}.exe` : toolName(variableName))
-    : undefined);
+function toolCheck(candidate: string | undefined, configPath: string): HostCheck {
   if (!candidate) {
     return {
       status: 'not_checked',
-      remediation: `select ${variableName} or an SDK root before activation`,
+      remediation: `select an explicit executable path for ${configPath} before activation`,
       source: 'explicit tool selection',
     };
   }
@@ -168,15 +160,9 @@ function toolCheck(
   return {
     status: 'fail',
     observed: 'missing_or_not_a_file',
-    remediation: 'choose an existing executable inside the approved provider root',
+    remediation: `choose an existing executable for ${configPath} inside the approved provider root`,
     source: 'explicit tool selection',
   };
-}
-
-function toolName(variableName: string): string {
-  if (variableName === 'ANDROID_ADB_PATH') return 'adb';
-  if (variableName === 'ANDROID_EMULATOR_PATH') return 'emulator';
-  return 'scrcpy';
 }
 
 function round(value: number): number {

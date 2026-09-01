@@ -70,3 +70,7 @@ try {
         Remove-Item -LiteralPath $resolvedFixture -Recurse -Force
     }
 }
+
+# The checker is intentionally invoked with a violating fixture above. Do not
+# leak that expected native exit code after the self-test has passed.
+exit 0

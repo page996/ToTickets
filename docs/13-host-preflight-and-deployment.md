@@ -26,7 +26,12 @@ API 提供两个只读端点：
 `host-probe.v1` 的 `side_effects` 固定为 `none`。Node 探针只使用操作系统资源 API
 和用户已选择的工具路径做存在性检查；它不通过 PATH、注册表或猜测的用户目录寻找
 工具。若未选择工具，状态为 `not_checked`；若选择的文件不存在，状态为 `fail`，
-但响应不会回显路径。
+但响应不会回显路径。运行时配置中的 `storage.data_dir` 会作为工作卷的显式
+`statfs` 目标，`tools.adb`、`tools.emulator` 和 `tools.scrcpy` 会分别作为显式
+可执行文件候选；这些值在加载时规范化。完整配置文件仍要求 `storage.data_dir`、
+`storage.log_dir`、`tools.adb` 和 `tools.scrcpy`，而环境模式只在提供对应的
+`PROJECT_*`/`ANDROID_*` 变量时检查，未提供时保持 `unknown`/`not_checked`，不会
+回退到当前工作目录或 `ANDROID_SDK_ROOT` 推导路径。
 
 ## 3. Provider manifest
 
@@ -116,8 +121,8 @@ provider manifest 限定。失败后从 `discovering`/`failed` 重新检查，�
   盘余量分别约 79 GiB 与 262 GiB，仅作本机快照。
 - 固件虚拟化、SLAT、DEP 报告可用；Android Emulator hypervisor driver 报告尚未
   安装。Windows 可选功能检查需要管理员权限，本轮不据此声称 Hyper-V/WHPX 已启用。
-- 本轮 `adb devices` 只读列举曾按工具行为启动 ADB server；检查结束后应执行精确的
-  `adb kill-server` 清理，不启动模拟器或安装 APK。
+- 本轮未运行 `adb devices`，也未启动 ADB server；没有启动模拟器或安装 APK。工具状态仅
+  由显式选择的工具路径检查和静态版本信息获得。
 
 因此下一步 Gate C 是：用户在目标宿主机选择系统镜像和 AVD，完成虚拟化/GPU 检查，
 由人工启动单实例并观察 mock App；通过后再做 2、4 实例 ramp test。真实大麦 APK

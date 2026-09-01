@@ -10,18 +10,20 @@
 
 - 本轮离线验收命令及其结果已按实际运行时间记录；旧版本测试数字和产物哈希不再作为证据。
 - 已建立首次 Git 基线提交：`6fa3bbd`（工作树在本轮文档更新前保持干净）。
-- 恢复接管后四个基线提交已推送到 `https://github.com/page996/ToTickets` 的 `main`；
-  当前远程跟踪分支与本地 `0c3ad33` 一致，未使用 force push。
+- 恢复接管后五个基线提交已推送到 `https://github.com/page996/ToTickets` 的 `main`；
+  当前远程跟踪分支与本地 `af58e5f` 一致，未使用 force push。本轮配置修复、合规自测
+  退出码修复和本审计更新将在最终门禁后以普通提交推送并再次核验。
 
 ## 桌面回归
 
-本轮从最新源码启动了临时 loopback API（首次 PID `38544`，重启演练 PID `27676`，端口
-`59953`）和 Vite（端口 `59954`），并使用本机 Chromium 对桌面 1440px 与移动 390px
-视口进行回归。页面、设备列表、提醒、审计视图均加载成功；稳态无 page error，REST
-快照和合法 WebSocket 同步帧均成功。
+本轮完成 Nest/Vite 构建后（API `dist` 文件时间约为 20:00 CST），于 20:24 CST 启动临时
+loopback API 和 Vite，并使用本机 Chromium 对桌面 1440px 与移动 390px 视口进行回归。完整
+证据保存在 `.runtime/r2-final-1788265464224-a415c09b/`；其中 `r2-evidence.json` 保存
+运行时分配的 fixture 地址（API `61035`、Vite `61036`）和结果，页面、设备列表、提醒、审计
+视图均加载成功，稳态无 page error，REST 快照和合法 WebSocket 同步帧均成功。
 
-- 桌面视口：`scrollWidth=1440`（视口宽度 1440），55 个可见控件无几何重叠。
-- 390px 视口：`scrollWidth=390`（视口宽度 390），各主视图无横向溢出；设备长列表、提醒和审计控件无几何重叠。
+- 桌面四个视图：`scrollWidth=1440`（视口宽度 1440），可见控件数依次为 `11/10/9/11`，均无几何重叠。
+- 移动四个视图：`scrollWidth=390`（视口宽度 390），可见控件数依次为 `11/10/9/11`，均无横向溢出或几何重叠。
 - 故障注入：停止 API 后控制台进入“连接异常/快照过期”，重启后约 5 秒恢复“控制平面在线”并重新同步空内存快照。
 - Origin：合法 Origin 收到 `event-stream.sync.v1`；浏览器非法 Origin 的 REST 请求被 CORS
   拦截，WS 以 close code `1008` 和 `origin is not allowed` 拒绝。
@@ -29,7 +31,7 @@
 React StrictMode 首次 effect 清理会产生一次“WebSocket connection ... closed before the
 connection is established”开发模式警告；API 停机注入期间的 `ERR_CONNECTION_REFUSED`
 也被记录为预期故障证据。两者均未出现在服务恢复后的稳态页面错误中。截图和日志保存在
-本地忽略目录 `.runtime/r2-browser/`，不作为版本化发布产物。Tauri 原生窗口本轮只完成
+本地忽略目录 `.runtime/r2-final-1788265464224-a415c09b/`，不作为版本化发布产物。Tauri 原生窗口本轮只完成
 `--no-bundle` 构建，尚未替代浏览器回归作为人工窗口验收。
 
 ## 验收记录
@@ -39,26 +41,29 @@ connection is established”开发模式警告；API 停机注入期间的 `ERR_
 
 | 命令 | 结果 |
 | --- | --- |
-| `scripts/pnpm.ps1 test`（注入 `CONSOLE_TEST_API_BASE_URL`/`CONSOLE_TEST_EVENTS_URL` loopback；API 16 suites/158 tests；Console 9 files/81 tests） | 通过（恢复接管后 API 新增 HostProbe/容量/exposure 契约测试） |
+| `scripts/pnpm.ps1 test`（注入 `CONSOLE_TEST_API_BASE_URL`/`CONSOLE_TEST_EVENTS_URL` loopback；API 16 suites/163 tests；Console 9 files/81 tests） | 通过（含 HostProbe/容量/exposure 契约与配置路径负向测试） |
 | `scripts/pnpm.ps1 typecheck`（API、Console） | 通过 |
 | `scripts/pnpm.ps1 build`（Nest/Vite） | 通过 |
 | `scripts/pnpm.ps1 test:load:mock` | 通过 |
 | `scripts/check-compliance.ps1` | 通过：112 runtime/command files，3 Node manifests，1 Rust manifest，1 config template |
 | `scripts/check-compliance.test.ps1` | 通过 |
+| `scripts/tests/check-compliance.Tests.ps1` | 通过 |
 | `pwsh -NoProfile -File scripts/tests/generate-sbom.Tests.ps1` | 通过：1143 components，1144 dependency nodes |
 | `scripts/generate-sbom.ps1 -Check` | 通过 |
 | `scripts/cargo.ps1 fmt --manifest-path apps/console/src-tauri/Cargo.toml -- --check` | 通过 |
 | `scripts/cargo.ps1 check --manifest-path apps/console/src-tauri/Cargo.toml --locked` | 通过 |
 | `scripts/cargo.ps1 clippy --manifest-path apps/console/src-tauri/Cargo.toml --locked --all-targets '--' '-D' 'warnings'` | 通过 |
 | `scripts/tauri.ps1 build --no-bundle`（loopback 配置） | 通过；生成 Windows release executable |
-| loopback mock API + Vite + Chromium 桌面/390px 回归（端口由运行时分配） | 通过；页面/REST/WS/视口/控件布局检查完成 |
+| loopback mock API + Vite + Chromium 桌面/390px 回归（端口由运行时分配；证据目录见上） | 通过；页面/REST/WS/视口/控件布局检查完成，脚本退出码 0 |
 | 浏览器非法 Origin REST/WS 验证 | 通过；CORS 拦截，WS close `1008` |
 | API 停止/重启后的控制台重连演练 | 通过；恢复后显示“控制平面在线”并重新同步 |
 
 恢复接管后新增的 API 只读端点 `GET /api/v1/hosts/probe` 与
-`GET /api/v1/hosts/providers` 已由运行时测试和 OpenAPI 契约测试覆盖；Console UI
-未改动，因此本轮没有重新生成视觉截图。视觉证据仍仅指向上方记录的上一轮 R2，不能
-被误读为 Tauri 原生窗口验收。
+`GET /api/v1/hosts/providers` 已由运行时测试和 OpenAPI 契约测试覆盖。配置层现在只接受
+显式选择的 `storage.data_dir`、`tools.adb`、`tools.emulator` 和 `tools.scrcpy`，未提供时
+返回 `unknown`/`not_checked`，不会从工作目录、PATH、注册表或 `ANDROID_SDK_ROOT` 猜测。
+R2 浏览器证据在上述构建完成后生成，并与当前 API dist 的时间顺序一致；它验证 mock 控制
+平面，不等于 Tauri 原生窗口人工验收。
 
 Windows PowerShell 5.1 不支持 SBOM 脚本使用的 `.NET Path.GetRelativePath`；按项目要求用 PowerShell 7 (`pwsh`) 重跑后通过。该环境差异不影响生成物。
 
@@ -68,16 +73,17 @@ Windows PowerShell 5.1 不支持 SBOM 脚本使用的 `.NET Path.GetRelativePath
 
 | 产物 | SHA-256 |
 | --- | --- |
-| `apps/console/src-tauri/target/release/human-assist-console.exe` | `AFCE8310E67CC6ED0AB5AFCF700C9C30C858A7CE21AA6DB8744784D6A6D43316` |
+| `apps/console/src-tauri/target/release/human-assist-console.exe` | `B9906EEF1F4F7E770A52EC195ACDD58401BEC6FF338613AAC22F6C89837C830B` |
 | `sbom/human-ticketing-console.cdx.json` | `40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B` |
 
 SBOM 是开发/构建视角，覆盖 pnpm lockfile、Cargo.lock 和两个 workspace manifest；正式发布仍需按 [依赖与可复现构建文档](09-dependency-and-reproducible-build.md) 补齐运行时闭包、许可证 notice 和 build provenance。
 
 ## 运行态清理
 
-本轮动态 API PID `38544`、重启 PID `27676`、Vite 进程树和浏览器均已按目标精确关闭；端口
-`59953/59954` 无监听（仅可能存在 TCP `TIME_WAIT`）。未使用按名称批量终止 Node、Rust 或
-Tauri 进程的命令。临时截图/日志留在 `.runtime/r2-browser/`，运行态数据未进入 Git。
+本轮 R2 动态 API、重启 API、Vite 进程树和浏览器均已按目标精确关闭；证据 fixture 的端口
+已无监听（仅可能存在 TCP `TIME_WAIT`）。未使用按名称批量终止 Node、Rust 或 Tauri 进程的
+命令。临时截图/日志留在 `.runtime/r2-final-1788265464224-a415c09b/`，运行态
+数据未进入 Git。
 
 ## 远程扩展前置条件
 
@@ -104,8 +110,8 @@ Android Emulator hypervisor driver 也未安装；因此没有启动模拟器、
 系统盘/数据盘余量约 79/262 GiB；固件虚拟化、SLAT、DEP 可用，但 emulator-check 报告
 hypervisor driver 未安装。API 的 `host-probe.v1` 不回显路径、主机名或环境变量，并把
 GPU/虚拟化未覆盖项标为 `unknown`；容量 profile 必须在目标宿主机 ramp test 后替换。
-运行 `adb devices` 曾按工具行为启动 ADB server，检查结束后已执行精确清理；没有启动
-模拟器或安装包。
+本轮未运行 `adb devices`，也未启动 ADB server；没有启动模拟器或安装包。工具状态仅由
+显式选择的工具路径检查和静态版本信息获得。
 
 对 `WECENG/ticket-purchase` 的结论是隔离 clone 的静态审计：其源码明确自动选择/提交
 购票流程并含批量点击和 Cookie pickle，许可证未声明，环境脚本只检查工具/包名，不能

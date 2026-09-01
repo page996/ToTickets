@@ -30,5 +30,15 @@ export function installIsolatedTestEnvironment(): Record<string, string> {
   };
   Object.assign(process.env, values);
   delete process.env.CONTROL_CONFIG_FILE;
+  for (const variableName of [
+    'PROJECT_DATA_DIR',
+    'PROJECT_LOG_DIR',
+    'ANDROID_ADB_PATH',
+    'ANDROID_EMULATOR_PATH',
+    'SCRCPY_PATH',
+    'ANDROID_SDK_ROOT',
+  ]) {
+    delete process.env[variableName];
+  }
   return values;
 }

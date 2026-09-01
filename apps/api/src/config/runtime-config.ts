@@ -4,6 +4,17 @@ import { validateBindHost } from './exposure-profile';
 
 export const RUNTIME_CONFIG = Symbol('RUNTIME_CONFIG');
 
+export interface RuntimeStorageConfig {
+  readonly dataDir?: string;
+  readonly logDir?: string;
+}
+
+export interface RuntimeToolsConfig {
+  readonly adb?: string;
+  readonly scrcpy?: string;
+  readonly emulator?: string;
+}
+
 export interface RuntimeConfig {
   readonly schemaVersion: 'runtime-config.v3';
   readonly api: {
@@ -11,6 +22,10 @@ export interface RuntimeConfig {
     readonly port: number;
     readonly allowedOrigins: readonly string[];
   };
+  /** Optional in environment-only mode; required by a complete config file. */
+  readonly storage?: RuntimeStorageConfig;
+  /** Optional in environment-only mode; required tools are still explicit when supplied. */
+  readonly tools?: RuntimeToolsConfig;
   readonly limits: {
     readonly maxDevices: number;
     readonly maxSchedules: number;
@@ -158,6 +173,18 @@ function optionalEnvironmentInteger(variableName: string): number | undefined {
   return value === undefined ? undefined : parseEnvironmentInteger(value, variableName);
 }
 
+function optionalEnvironmentString(variableName: string): string | undefined {
+  const value = process.env[variableName];
+  return value === undefined ? undefined : requiredString(value, `environment variable ${variableName}`);
+}
+
+function optionalEnvironmentSection(
+  values: Readonly<Record<string, string | undefined>>,
+): JsonRecord | undefined {
+  const present = Object.entries(values).filter(([, value]) => value !== undefined);
+  return present.length > 0 ? Object.fromEntries(present) : undefined;
+}
+
 function readConfigFile(configPath: string): JsonRecord {
   const normalizedPath = normalize(
     isAbsolute(configPath) ? configPath : resolve(process.cwd(), configPath),
@@ -181,6 +208,15 @@ function sourceConfig(): JsonRecord {
   if (configPath) {
     return readConfigFile(configPath);
   }
+  const storage = optionalEnvironmentSection({
+    data_dir: optionalEnvironmentString('PROJECT_DATA_DIR'),
+    log_dir: optionalEnvironmentString('PROJECT_LOG_DIR'),
+  });
+  const tools = optionalEnvironmentSection({
+    adb: optionalEnvironmentString('ANDROID_ADB_PATH'),
+    scrcpy: optionalEnvironmentString('SCRCPY_PATH'),
+    emulator: optionalEnvironmentString('ANDROID_EMULATOR_PATH'),
+  });
   return {
     schema_version: process.env.CONFIG_SCHEMA_VERSION,
     api: {
@@ -188,6 +224,8 @@ function sourceConfig(): JsonRecord {
       port: optionalEnvironmentInteger('CONTROL_PORT'),
       allowed_origins: process.env.CONSOLE_ORIGINS,
     },
+    ...(storage ? { storage } : {}),
+    ...(tools ? { tools } : {}),
     limits: {
       max_devices: optionalEnvironmentInteger('MAX_DEVICES'),
       max_schedules: optionalEnvironmentInteger('MAX_SCHEDULES'),
@@ -236,8 +274,8 @@ export function loadRuntimeConfig(): RuntimeConfig {
   if (!isRecord(raw.policy)) {
     throw new Error('policy must be an object');
   }
-  if (usesCompleteConfigFile || raw.storage !== undefined) validateIgnoredStorage(raw.storage);
-  if (usesCompleteConfigFile || raw.tools !== undefined) validateIgnoredTools(raw.tools);
+  const storage = parseStorageConfig(raw.storage, usesCompleteConfigFile);
+  const tools = parseToolsConfig(raw.tools, usesCompleteConfigFile);
   assertOnlyKeys(raw.api, ['bind_host', 'port', 'allowed_origins'], 'api');
   assertOnlyKeys(
     raw.limits,
@@ -270,6 +308,8 @@ export function loadRuntimeConfig(): RuntimeConfig {
       port: boundedInteger(raw.api.port, 'api.port', 1024, 65535),
       allowedOrigins: Object.freeze(parseOrigins(raw.api.allowed_origins)),
     }),
+    ...(storage ? { storage } : {}),
+    ...(tools ? { tools } : {}),
     limits: Object.freeze({
       maxDevices: boundedInteger(raw.limits.max_devices, 'limits.max_devices', 1, 64),
       maxSchedules: boundedInteger(
@@ -375,17 +415,58 @@ export function loadRuntimeConfig(): RuntimeConfig {
   });
 }
 
-function validateIgnoredStorage(value: unknown): void {
-  if (!isRecord(value)) throw new Error('storage must be an object');
-  assertOnlyKeys(value, ['data_dir', 'log_dir'], 'storage');
-  requiredString(value.data_dir, 'storage.data_dir');
-  requiredString(value.log_dir, 'storage.log_dir');
+function normalizeConfiguredPath(value: unknown, name: string): string {
+  return normalize(requiredString(value, name));
 }
 
-function validateIgnoredTools(value: unknown): void {
+function optionalConfiguredPath(value: unknown, name: string): string | undefined {
+  return value === undefined ? undefined : normalizeConfiguredPath(value, name);
+}
+
+function parseStorageConfig(
+  value: unknown,
+  required: boolean,
+): RuntimeStorageConfig | undefined {
+  if (value === undefined) {
+    if (required) throw new Error('storage must be an object');
+    return undefined;
+  }
+  if (!isRecord(value)) throw new Error('storage must be an object');
+  assertOnlyKeys(value, ['data_dir', 'log_dir'], 'storage');
+  const dataDir = required
+    ? normalizeConfiguredPath(value.data_dir, 'storage.data_dir')
+    : optionalConfiguredPath(value.data_dir, 'storage.data_dir');
+  const logDir = required
+    ? normalizeConfiguredPath(value.log_dir, 'storage.log_dir')
+    : optionalConfiguredPath(value.log_dir, 'storage.log_dir');
+  if (dataDir === undefined && logDir === undefined) return undefined;
+  return Object.freeze({
+    ...(dataDir !== undefined ? { dataDir } : {}),
+    ...(logDir !== undefined ? { logDir } : {}),
+  });
+}
+
+function parseToolsConfig(
+  value: unknown,
+  required: boolean,
+): RuntimeToolsConfig | undefined {
+  if (value === undefined) {
+    if (required) throw new Error('tools must be an object');
+    return undefined;
+  }
   if (!isRecord(value)) throw new Error('tools must be an object');
   assertOnlyKeys(value, ['adb', 'scrcpy', 'emulator'], 'tools');
-  requiredString(value.adb, 'tools.adb');
-  requiredString(value.scrcpy, 'tools.scrcpy');
-  if (value.emulator !== undefined) requiredString(value.emulator, 'tools.emulator');
+  const adb = required
+    ? normalizeConfiguredPath(value.adb, 'tools.adb')
+    : optionalConfiguredPath(value.adb, 'tools.adb');
+  const scrcpy = required
+    ? normalizeConfiguredPath(value.scrcpy, 'tools.scrcpy')
+    : optionalConfiguredPath(value.scrcpy, 'tools.scrcpy');
+  const emulator = optionalConfiguredPath(value.emulator, 'tools.emulator');
+  if (adb === undefined && scrcpy === undefined && emulator === undefined) return undefined;
+  return Object.freeze({
+    ...(adb !== undefined ? { adb } : {}),
+    ...(scrcpy !== undefined ? { scrcpy } : {}),
+    ...(emulator !== undefined ? { emulator } : {}),
+  });
 }

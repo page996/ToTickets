@@ -1,6 +1,8 @@
-import { calculateProviderCapacity } from '../src/hosts/host.service';
+import { join } from 'node:path';
+import { calculateProviderCapacity, collectResources, HostService } from '../src/hosts/host.service';
 import { providerManifest } from '../src/hosts/provider-manifests';
 import { HostResourceSnapshot } from '../src/hosts/host.types';
+import { RuntimeConfig } from '../src/config/runtime-config';
 
 describe('host capacity planning', () => {
   const resources: HostResourceSnapshot = {
@@ -47,4 +49,73 @@ describe('host capacity planning', () => {
       expect(manifest.capabilities.automation).toBe(false);
     }
   });
+
+  it('uses only configured storage and tool paths for host checks', () => {
+    const missingDataDir = join(process.cwd(), '.runtime', 'missing-host-probe-target');
+    const missingTool = join(process.cwd(), '.runtime', 'missing-tool');
+    const service = new HostService(hostConfig({
+      storage: { dataDir: missingDataDir },
+      tools: {
+        adb: process.execPath,
+        scrcpy: missingTool,
+        emulator: process.execPath,
+      },
+    }));
+
+    const report = service.probe();
+
+    expect(report.resources.diskFreeGib).toBeNull();
+    expect(report.checks.adb).toEqual(expect.objectContaining({ status: 'pass', observed: 'present' }));
+    expect(report.checks.scrcpy).toEqual(expect.objectContaining({ status: 'fail', observed: 'missing_or_not_a_file' }));
+    expect(report.checks.emulator).toEqual(expect.objectContaining({ status: 'pass', observed: 'present' }));
+    expect(JSON.stringify(report)).not.toContain(missingDataDir);
+    expect(JSON.stringify(report)).not.toContain(missingTool);
+
+    const capacities = service.providers().capacity;
+    expect(capacities.every((capacity) => capacity.unknownResources.includes('disk_gib'))).toBe(true);
+  });
+
+  it('does not fall back to the process working directory when storage is omitted', () => {
+    const service = new HostService(hostConfig());
+
+    expect(collectResources().diskFreeGib).toBeNull();
+    expect(service.probe().resources.diskFreeGib).toBeNull();
+    expect(service.probe().checks.adb.status).toBe('not_checked');
+    expect(service.probe().checks.emulator.status).toBe('not_checked');
+    expect(service.probe().checks.scrcpy.status).toBe('not_checked');
+  });
 });
+
+function hostConfig(overrides: {
+  storage?: RuntimeConfig['storage'];
+  tools?: RuntimeConfig['tools'];
+} = {}): RuntimeConfig {
+  return {
+    schemaVersion: 'runtime-config.v3',
+    api: { bindHost: '127.0.0.1', port: 12000, allowedOrigins: ['http://console.example.invalid'] },
+    ...(overrides.storage ? { storage: overrides.storage } : {}),
+    ...(overrides.tools ? { tools: overrides.tools } : {}),
+    limits: {
+      maxDevices: 8,
+      maxSchedules: 64,
+      heartbeatSeconds: 30,
+      auditRetentionDays: 7,
+      clockToleranceMs: 250,
+      websocketMaxClients: 64,
+      websocketMaxBufferedBytes: 1_048_576,
+      websocketMaxPayloadBytes: 65_536,
+      eventReplayBatchSize: 32,
+      eventReplayMaxEvents: 256,
+      auditMaxRecords: 10_000,
+      operationQueueMaxQueued: 100,
+    },
+    policy: {
+      idempotencyTtlSeconds: 600,
+      idempotencyMaxEntries: 100,
+      confirmationTtlSeconds: 300,
+      confirmationMaxEntries: 100,
+      eventHistorySize: 1000,
+    },
+    policyVersion: 'test-policy.v1',
+  };
+}

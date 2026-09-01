@@ -1,6 +1,6 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, normalize, resolve } from 'node:path';
 import { loadRuntimeConfig } from '../src/config/runtime-config';
 import { installIsolatedTestEnvironment } from './test-environment';
 
@@ -38,6 +38,27 @@ describe('loadRuntimeConfig', () => {
     expect(config.limits.operationQueueMaxQueued).toBe(100);
     expect(config.policy.idempotencyMaxEntries).toBe(100);
     expect(config.policy.confirmationMaxEntries).toBe(100);
+  });
+
+  it('keeps optional host paths absent when environment-only startup omits them', () => {
+    const config = loadRuntimeConfig();
+
+    expect(config.storage).toBeUndefined();
+    expect(config.tools).toBeUndefined();
+  });
+
+  it('loads allowlisted host paths from environment and normalizes them', () => {
+    process.env.PROJECT_DATA_DIR = '  ./.runtime/data/../probe  ';
+    process.env.ANDROID_ADB_PATH = '  ./tools/../tools/adb  ';
+    process.env.ANDROID_EMULATOR_PATH = './tools/emulator';
+
+    const config = loadRuntimeConfig();
+
+    expect(config.storage).toEqual({ dataDir: normalize('./.runtime/data/../probe') });
+    expect(config.tools).toEqual({
+      adb: normalize('./tools/../tools/adb'),
+      emulator: normalize('./tools/emulator'),
+    });
   });
 
   it('fails closed when a required setting is missing', () => {
@@ -103,6 +124,28 @@ describe('loadRuntimeConfig', () => {
     useConfigFile(source);
 
     expect(loadRuntimeConfig().limits.maxDevices).toBe(8);
+  });
+
+  it('returns normalized host paths from a complete configuration file', () => {
+    const source = completeFileConfig();
+    const storage = source.storage as Record<string, unknown>;
+    const tools = source.tools as Record<string, unknown>;
+    storage.data_dir = './.runtime/data/../data';
+    storage.log_dir = './.runtime/logs/../logs';
+    tools.adb = './tools/../tools/adb';
+    tools.scrcpy = './tools/scrcpy';
+    useConfigFile(source);
+
+    expect(loadRuntimeConfig()).toEqual(expect.objectContaining({
+      storage: {
+        dataDir: normalize('./.runtime/data/../data'),
+        logDir: normalize('./.runtime/logs/../logs'),
+      },
+      tools: {
+        adb: normalize('./tools/../tools/adb'),
+        scrcpy: normalize('./tools/scrcpy'),
+      },
+    }));
   });
 
   it.each(['storage', 'tools'])('requires %s in a complete configuration file', (key) => {
