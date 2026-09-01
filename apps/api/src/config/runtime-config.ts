@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { isAbsolute, normalize, resolve } from 'node:path';
-import { isIP } from 'node:net';
+import { validateBindHost } from './exposure-profile';
 
 export const RUNTIME_CONFIG = Symbol('RUNTIME_CONFIG');
 
@@ -37,8 +37,6 @@ export interface RuntimeConfig {
 
 type JsonRecord = Record<string, unknown>;
 
-const IPV6_LOOPBACK_BIND_HOST = '::1'; // compliance: loopback-bind-policy-constant
-
 const INTEGER_CONFIG_PATHS = new Set([
   'api.port',
   'limits.max_devices',
@@ -69,18 +67,6 @@ function requiredString(value: unknown, name: string): string {
     throw new Error(`${name} must be a non-empty string`);
   }
   return value.trim();
-}
-
-function loopbackBindHost(value: unknown): string {
-  const bindHost = requiredString(value, 'api.bind_host');
-  const isIpv4Loopback =
-    isIP(bindHost) === 4 && Number(bindHost.split('.')[0]) === 127;
-  if (!isIpv4Loopback && bindHost !== IPV6_LOOPBACK_BIND_HOST) {
-    throw new Error(
-      `api.bind_host must be an IPv4 127/8 address or ${IPV6_LOOPBACK_BIND_HOST}`,
-    );
-  }
-  return bindHost;
 }
 
 function boundedInteger(
@@ -276,7 +262,7 @@ export function loadRuntimeConfig(): RuntimeConfig {
     ['version', 'idempotency_ttl_seconds', 'idempotency_max_entries', 'confirmation_ttl_seconds', 'confirmation_max_entries', 'event_history_size'],
     'policy',
   );
-  const bindHost = loopbackBindHost(raw.api.bind_host);
+  const bindHost = validateBindHost(raw.api.bind_host);
   return Object.freeze({
     schemaVersion: 'runtime-config.v3' as const,
     api: Object.freeze({

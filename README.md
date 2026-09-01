@@ -23,3 +23,7 @@
 技术栈已冻结为 NestJS + TypeScript 后端和 Tauri + React/TypeScript 控制台。第一阶段仍先实现 mock-first 的控制平面和设备适配器契约；依赖、工具链、地址和路径必须按 [`docs/09-dependency-and-reproducible-build.md`](docs/09-dependency-and-reproducible-build.md) 复现。
 
 运行时配置当前为 `runtime-config.v3`。除既有容量字段外，部署环境必须显式提供 `OPERATION_QUEUE_MAX_QUEUED`，用于限制每个本地操作调度器的等待项；达到配额时 API 返回可重试的容量错误，健康诊断只报告非敏感的 active、queued、capacity 和 rejected 计数。
+
+宿主机准备阶段可读取 `GET /api/v1/hosts/probe` 和 `GET /api/v1/hosts/providers`：前者
+只做无副作用资源/工具状态检查，后者给出带保留量的 provider 容量估算。估算必须在
+目标宿主机 ramp test 后复核，当前接口不会启动 ADB/模拟器、安装 APK 或发送设备输入。

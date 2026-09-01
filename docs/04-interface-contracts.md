@@ -126,7 +126,28 @@
 
 诊断响应不得包含绑定地址、端点、路径、环境变量、凭据、设备画面或命令载荷。容量达到上限时 `ready.status` 可以为 `degraded`，但端点仍返回 HTTP 200，确保操作者能够读取原因并恢复。
 
-### 3.5 人工确认票据
+### 3.5 宿主机检查与 provider 规划
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/hosts/probe` | 无副作用读取宿主机资源、虚拟化/GPU 未探测项和显式工具选择状态 |
+| GET | `/hosts/providers` | 返回 `provider-manifest.v1` 规划 profile、资源保留后的估算容量和启动并发上限 |
+
+`/hosts/probe` 的响应 schema 为 `host-probe.v1`，固定包含 `side_effects: "none"`。
+探针不得启动 ADB、模拟器、scrcpy 或其他外部进程；未选择的工具报告
+`not_checked`，不存在的显式工具报告 `fail`，且不回显绝对路径。GPU、虚拟化后端或
+目标数据卷无法从无副作用 API 确认时必须标记 `unknown`，不能猜测通过或把容量强制
+置零。
+
+`/hosts/providers` 只返回规划数据，不代表 provider 已部署；`safe_instances` 是宿主机
+与 provider 的估算，`control_plane_limit` 是当前 API 的 `max_devices`，
+`effective_instances` 是二者较小值。所有 manifest 都必须
+声明 `user_input=false` 和 `automation=false`。容量估算使用宿主机当前可用资源、
+固定保留量和 provider 的每实例 profile；实际并发数只有在目标宿主机 ramp test
+和人工验收后才能确认。远程 provider 不得在响应或日志中出现云凭据、项目令牌或
+真实账号信息。
+
+### 3.6 人工确认票据
 
 设备生命周期、只读预览、焦点切换和急停均使用服务端签发的一次性票据。控制台显示确认对话框后，先提交：
 

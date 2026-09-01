@@ -10,6 +10,7 @@ import { RuntimeConfigModule } from './config/config.module';
 import { DeviceModule } from './devices/device.module';
 import { EventsModule } from './events/events.module';
 import { HealthModule } from './health/health.module';
+import { HostModule } from './hosts/host.module';
 import { SafetyModule } from './safety/safety.module';
 import { ScheduleModule } from './schedules/schedule.module';
 
@@ -23,6 +24,7 @@ import { ScheduleModule } from './schedules/schedule.module';
     SafetyModule,
     EventsModule,
     HealthModule,
+    HostModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: PolicyGuard },

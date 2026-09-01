@@ -10,6 +10,8 @@
 
 - 本轮离线验收命令及其结果已按实际运行时间记录；旧版本测试数字和产物哈希不再作为证据。
 - 已建立首次 Git 基线提交：`6fa3bbd`（工作树在本轮文档更新前保持干净）。
+- 恢复接管后四个基线提交已推送到 `https://github.com/page996/ToTickets` 的 `main`；
+  当前远程跟踪分支与本地 `0c3ad33` 一致，未使用 force push。
 
 ## 桌面回归
 
@@ -37,11 +39,11 @@ connection is established”开发模式警告；API 停机注入期间的 `ERR_
 
 | 命令 | 结果 |
 | --- | --- |
-| `scripts/pnpm.ps1 test`（注入 `CONSOLE_TEST_API_BASE_URL`/`CONSOLE_TEST_EVENTS_URL` loopback；API 14 suites/150 tests；Console 9 files/81 tests） | 通过 |
+| `scripts/pnpm.ps1 test`（注入 `CONSOLE_TEST_API_BASE_URL`/`CONSOLE_TEST_EVENTS_URL` loopback；API 16 suites/158 tests；Console 9 files/81 tests） | 通过（恢复接管后 API 新增 HostProbe/容量/exposure 契约测试） |
 | `scripts/pnpm.ps1 typecheck`（API、Console） | 通过 |
 | `scripts/pnpm.ps1 build`（Nest/Vite） | 通过 |
 | `scripts/pnpm.ps1 test:load:mock` | 通过 |
-| `scripts/check-compliance.ps1` | 通过：105 runtime/command files，3 Node manifests，1 Rust manifest，1 config template |
+| `scripts/check-compliance.ps1` | 通过：112 runtime/command files，3 Node manifests，1 Rust manifest，1 config template |
 | `scripts/check-compliance.test.ps1` | 通过 |
 | `pwsh -NoProfile -File scripts/tests/generate-sbom.Tests.ps1` | 通过：1143 components，1144 dependency nodes |
 | `scripts/generate-sbom.ps1 -Check` | 通过 |
@@ -53,6 +55,11 @@ connection is established”开发模式警告；API 停机注入期间的 `ERR_
 | 浏览器非法 Origin REST/WS 验证 | 通过；CORS 拦截，WS close `1008` |
 | API 停止/重启后的控制台重连演练 | 通过；恢复后显示“控制平面在线”并重新同步 |
 
+恢复接管后新增的 API 只读端点 `GET /api/v1/hosts/probe` 与
+`GET /api/v1/hosts/providers` 已由运行时测试和 OpenAPI 契约测试覆盖；Console UI
+未改动，因此本轮没有重新生成视觉截图。视觉证据仍仅指向上方记录的上一轮 R2，不能
+被误读为 Tauri 原生窗口验收。
+
 Windows PowerShell 5.1 不支持 SBOM 脚本使用的 `.NET Path.GetRelativePath`；按项目要求用 PowerShell 7 (`pwsh`) 重跑后通过。该环境差异不影响生成物。
 
 ## 产物哈希
@@ -61,7 +68,7 @@ Windows PowerShell 5.1 不支持 SBOM 脚本使用的 `.NET Path.GetRelativePath
 
 | 产物 | SHA-256 |
 | --- | --- |
-| `apps/console/src-tauri/target/release/human-assist-console.exe` | `A25B5AF90F7D9248CF5B817F11588161A16B83A0148DFA8419603B9667938FA7` |
+| `apps/console/src-tauri/target/release/human-assist-console.exe` | `AFCE8310E67CC6ED0AB5AFCF700C9C30C858A7CE21AA6DB8744784D6A6D43316` |
 | `sbom/human-ticketing-console.cdx.json` | `40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B` |
 
 SBOM 是开发/构建视角，覆盖 pnpm lockfile、Cargo.lock 和两个 workspace manifest；正式发布仍需按 [依赖与可复现构建文档](09-dependency-and-reproducible-build.md) 补齐运行时闭包、许可证 notice 和 build provenance。
@@ -86,7 +93,24 @@ security profile，引入服务端 `Principal/AuthContext`、设备授权、REST
 官方 SDK/ADB、系统镜像和快照更容易版本化与复现；先验证单实例，再按宿主机资源扩大。
 Genymotion Desktop 保留为第二候选，必须先完成 EULA、许可证、版本矩阵和数据流审查；
 Genymotion Cloud 不作为默认方案。BlueStacks、雷电等闭源消费级模拟器不进入核心依赖。
-本机没有检测到 Android SDK/ADB/AVD/scrcpy，因此没有在本轮安装、启动模拟器或安装 APK。
+用户提供的安装截图和本轮只读文件检查确认 Android Studio Standard、SDK、Platform-Tools
+与 Emulator 已安装；`adb` 37.0.1、Emulator 37.1.11.0。当前没有已创建 AVD 或 scrcpy，
+Android Emulator hypervisor driver 也未安装；因此没有启动模拟器、安装 APK 或连接真实
+第三方应用。截图只证明安装设置/组件下载，不证明并发、兼容性或检测结果。
+
+## 恢复接管后的宿主机与参考仓库审计
+
+宿主机检查只作为本机快照：32 逻辑线程、约 32 GiB RAM、检查时可用内存约 14--15 GiB，
+系统盘/数据盘余量约 79/262 GiB；固件虚拟化、SLAT、DEP 可用，但 emulator-check 报告
+hypervisor driver 未安装。API 的 `host-probe.v1` 不回显路径、主机名或环境变量，并把
+GPU/虚拟化未覆盖项标为 `unknown`；容量 profile 必须在目标宿主机 ramp test 后替换。
+运行 `adb devices` 曾按工具行为启动 ADB server，检查结束后已执行精确清理；没有启动
+模拟器或安装包。
+
+对 `WECENG/ticket-purchase` 的结论是隔离 clone 的静态审计：其源码明确自动选择/提交
+购票流程并含批量点击和 Cookie pickle，许可证未声明，环境脚本只检查工具/包名，不能
+证明 APK 或环境检测兼容性。未运行代码、未安装依赖/APK、未访问真实平台；该仓库不作为
+本项目依赖或实现来源。详细风险类别和公开证据见 `docs/01-research-report.md`。
 
 ## 明确未覆盖
 
@@ -94,3 +118,5 @@ Genymotion Cloud 不作为默认方案。BlueStacks、雷电等闭源消费级�
 - 不提供高频点击、跨账号同步输入、票档选择、风控规避或任何自动购票接口。
 - 当前构建证明 dependency-reproducible，不声称 Windows 工具链、WebView2、时间戳和调试路径已达到 bit-for-bit 可复现。
 - 当前尚未完成 Tauri 原生窗口人工验收、SQLite 持久化、真实只读 Android adapter 和发布签名/安装包。
+- 当前尚未完成真实 provider 的部署状态控制、目标宿主机专用 GPU/虚拟化/网络检查和
+  Gate C；HostProbe 只提供 planning/readiness，不会自行启动外部实例。

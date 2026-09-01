@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/provider-manifest.v1.json",
+  "title": "ProviderManifestV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "provider_id", "kind", "planning_only", "capabilities", "requirements", "instance_profile", "max_instances", "notes"],
+  "properties": {
+    "schema_version": { "const": "provider-manifest.v1" },
+    "provider_id": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "kind": { "type": "string", "enum": ["mock", "avd", "physical_usb", "remote_stream"] },
+    "planning_only": { "type": "boolean" },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lifecycle", "health_read", "screen_preview", "user_input", "automation"],
+      "properties": {
+        "lifecycle": { "const": true },
+        "health_read": { "const": true },
+        "screen_preview": { "const": true },
+        "user_input": { "const": false },
+        "automation": { "const": false }
+      }
+    },
+    "requirements": {
+      "$ref": "#/$defs/requirements"
+    },
+    "instance_profile": {
+      "$ref": "#/$defs/instance_profile"
+    },
+    "max_instances": { "type": "integer", "minimum": 1, "maximum": 10000 },
+    "notes": { "type": "array", "items": { "type": "string", "minLength": 1, "maxLength": 512 } }
+  },
+  "$defs": {
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min_cpu_threads", "min_memory_mib", "min_disk_gib"],
+      "properties": {
+        "min_cpu_threads": { "type": "integer", "minimum": 1 },
+        "min_memory_mib": { "type": "integer", "minimum": 1 },
+        "min_disk_gib": { "type": "number", "minimum": 0 }
+      }
+    },
+    "instance_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpu_threads", "memory_mib", "disk_gib", "vram_mib", "stream_mbps"],
+      "properties": {
+        "cpu_threads": { "type": "integer", "minimum": 1 },
+        "memory_mib": { "type": "integer", "minimum": 1 },
+        "disk_gib": { "type": "number", "minimum": 0 },
+        "vram_mib": { "type": "number", "minimum": 0 },
+        "stream_mbps": { "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

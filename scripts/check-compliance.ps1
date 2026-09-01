@@ -143,7 +143,7 @@ function Test-IsLoopbackBindPolicyConstantLine {
     $relative = Get-ProjectRelativePath -Path $Path
     return (
         (
-            $relative -eq 'apps/api/src/config/runtime-config.ts' -and
+            $relative -in @('apps/api/src/config/runtime-config.ts', 'apps/api/src/config/exposure-profile.ts') -and
             $Line -match "\bIPV6_LOOPBACK_BIND_HOST\s*=\s*'::1'"
         ) -or
         ($relative -eq 'config/config.schema.json' -and $Line -match '"const"\s*:\s*"::1"')

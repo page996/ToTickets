@@ -187,6 +187,16 @@ describe('OpenAPI 3.1 REST contract', () => {
       '/api/v1/health/diagnostics',
       await request(app.getHttpServer()).get('/api/v1/health/diagnostics'),
     );
+    capture(
+      'get',
+      '/api/v1/hosts/probe',
+      await request(app.getHttpServer()).get('/api/v1/hosts/probe'),
+    );
+    capture(
+      'get',
+      '/api/v1/hosts/providers',
+      await request(app.getHttpServer()).get('/api/v1/hosts/providers'),
+    );
 
     const registration = {
       alias: 'OpenAPI mock device',

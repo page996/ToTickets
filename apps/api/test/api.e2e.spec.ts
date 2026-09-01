@@ -73,6 +73,41 @@ describe('Control plane REST contract', () => {
     expect(JSON.stringify(diagnostics.body)).not.toContain(process.env.CONSOLE_ORIGINS);
   });
 
+  it('exposes a side-effect-free host probe without leaking paths or environment values', async () => {
+    const response = await request(app.getHttpServer()).get('/api/v1/hosts/probe').expect(200);
+    expect(response.body).toEqual(expect.objectContaining({
+      schema: 'host-probe.v1',
+      collected_at: expect.any(String),
+      resources: expect.objectContaining({
+        cpu_threads: expect.any(Number),
+        memory_mib: expect.any(Number),
+        available_memory_mib: expect.any(Number),
+      }),
+      side_effects: 'none',
+    }));
+    expect(JSON.stringify(response.body)).not.toContain(process.env.CONTROL_CONFIG_FILE ?? 'never-used');
+  });
+
+  it('lists conservative provider capacity estimates with input permanently disabled', async () => {
+    const response = await request(app.getHttpServer()).get('/api/v1/hosts/providers').expect(200);
+    expect(response.body.planning).toBe('estimated_until_ramp_test');
+    expect(response.body.manifests).toEqual(expect.arrayContaining([
+      expect.objectContaining({ provider_id: 'android-emulator-avd', planning_only: true }),
+      expect.objectContaining({
+        provider_id: 'android-emulator-avd',
+        capabilities: expect.objectContaining({ user_input: false, automation: false }),
+      }),
+    ]));
+    expect(response.body.capacity).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        provider_id: 'android-emulator-avd',
+        startup_concurrency: expect.any(Number),
+        control_plane_limit: 8,
+        effective_instances: expect.any(Number),
+      }),
+    ]));
+  });
+
   it('returns collection envelopes and snake_case resource fields', async () => {
     const response = await request(app.getHttpServer()).get('/api/v1/devices').expect(200);
     expect(response.body.request_id).toEqual(expect.any(String));

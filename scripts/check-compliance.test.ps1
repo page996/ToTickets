@@ -21,10 +21,14 @@ if (-not $fixtureRoot.StartsWith($expectedPrefix, [System.StringComparison]::Ord
 
 try {
     $sourceDirectory = New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'apps/api/src/other') -Force
+    $exposureDirectory = New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'apps/api/src/config') -Force
     $configDirectory = New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'config') -Force
     $docsDirectory = New-Item -ItemType Directory -Path (Join-Path $fixtureRoot 'docs') -Force
     Set-Content -LiteralPath (Join-Path $sourceDirectory.FullName 'other.ts') -Encoding utf8 -Value @(
         "const OUT_OF_SCOPE_LOOPBACK = '::1'; // compliance: loopback-bind-policy-constant"
+    )
+    Set-Content -LiteralPath (Join-Path $exposureDirectory.FullName 'exposure-profile.ts') -Encoding utf8 -Value @(
+        "const IPV6_LOOPBACK_BIND_HOST = '::1'; // compliance: loopback-bind-policy-constant"
     )
     Set-Content -LiteralPath (Join-Path $configDirectory.FullName 'config.example.json') -Encoding utf8 -Value @(
         '{',

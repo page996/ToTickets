@@ -13,10 +13,12 @@ loopback 监听的 `runtime-config.v3` 加载与 schema、REST/WebSocket 基线�
 
 已完成本轮：OpenAPI v1 请求/响应契约及装饰路由契约测试、离线测试/构建/合规/
 SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origin 验证、API
-重启后的控制台 WebSocket 重连验证，以及首次 Git 基线提交。
+重启后的控制台 WebSocket 重连验证、宿主机只读探针与 provider 容量规划接口，以及
+首次 Git 基线提交并推送到用户指定的 `page996/ToTickets`。
 
 明确待办：认证/TLS/RBAC/CSRF、持久化 SQLite repository、真实设备的只读 Android
-适配器、Tauri 原生窗口人工验收、发布级运行时 SBOM/provenance 和签名安装包。
+适配器、部署状态控制器、Tauri 原生窗口人工验收、发布级运行时 SBOM/provenance
+和签名安装包。
 上述安全控制完成前不得进行非 loopback 部署；真实适配器仍不得包含任何设备输入
 或购票自动化能力。
 
@@ -67,6 +69,26 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
 当前证据：mock 负载自测和 API 并发/事件流/重启恢复测试已通过；本轮完整命令、计数和
 浏览器故障注入结果见 `docs/12-final-release-audit.md`。
 
+## 阶段 2.75：宿主机准备与部署规划（本轮新增，进行中）
+
+已完成：
+
+- `host-probe.v1` 无副作用资源/工具状态检查；不通过 PATH、注册表或猜测路径发现工具。
+- `provider-manifest.v1` 与保守容量规划，区分控制平面 `max_devices`、宿主机资源和
+  provider 上限；启动并发默认不超过 2。
+- `loopback.v1` exposure profile 集中边界；未来认证/TLS profile 仅描述，不可直接启用。
+- `GET /api/v1/hosts/probe` 与 `GET /api/v1/hosts/providers` 的 OpenAPI、运行时和
+  纯函数测试。
+
+待完成：
+
+- 目标宿主机上的虚拟化后端、GPU/VRAM、目标 AVD 数据卷和网络/USB 带宽专用检查。
+- desired/observed deployment state、generation、operation_id 和审计控制器；在
+  认证/TLS/RBAC/CSRF 与 provider 命令 allowlist 完成前不启动外部实例。
+- Gate C 单实例人工观察及随后 2/4 实例 ramp test；测试结果才能替换估算 profile。
+
+详细规则见 `docs/13-host-preflight-and-deployment.md`。
+
 ## 阶段 3：只读 Android 适配器
 
 交付建议：
@@ -77,9 +99,10 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
 
 本轮选型结论（2026-09-01）：以官方 Android Studio Emulator/AVD 作为 Gate C
 和 mock 设备的首选 provider，先做单实例只读 PoC；不把第三方闭源模拟器加入核心
-依赖。当前开发机未发现 Android Studio、SDK、ADB、AVD 或 scrcpy，尚未安装或启动
-任何设备工具。目标 Android API/系统镜像、宿主机虚拟化/GPU 和并发实例数需在用户
-准备环境后实测并记录。
+依赖。当前开发机已发现 Android Studio、SDK、ADB 和官方 Emulator，尚未创建 AVD，
+也未发现 scrcpy 或在线设备；虚拟化固件/SLAT 可用，但 Emulator hypervisor driver
+尚未安装。目标 Android API/系统镜像、宿主机虚拟化/GPU 和并发实例数仍需在目标
+环境实测并记录。宿主机检查与 profile 规则见 `docs/13-host-preflight-and-deployment.md`。
 
 退出条件：Gate C 通过；人工验收确认系统不自动操作真实第三方 App。
 

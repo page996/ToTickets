@@ -94,6 +94,11 @@ draft -> scheduled -> notified -> human_confirmed ->
 
 No component receives a password, OTP, ID number, payment credential, full cookie, bearer token or unredacted payment QR code.
 
+宿主机准备由独立 Host Probe/Planner 提供：它读取资源和显式工具选择状态，输出
+`host-probe.v1` 与 `provider-manifest.v1` 的规划结果，不启动 ADB/模拟器、不安装 APK、
+不访问第三方应用。部署控制与探测分离，未来以版本化 provider host 合约承载 desired/
+observed state、资源预留和审计；当前 API 仍只允许 loopback。
+
 ## 6. 可扩展性与资源上限
 
 所有配额均为必填运行时配置，不存在编译默认值：设备/日程数量、单一预览流、WebSocket 客户端与缓冲、入站帧、replay 批次与窗口、幂等缓存、确认票据、事件历史、审计条数与保留天数。超过限制会拒绝新工作、要求客户端取完整快照、淘汰最旧内存审计，或仅关闭慢连接；不会静默排队任何设备输入。

@@ -8,6 +8,7 @@
   },
   "tags": [
     { "name": "Health" },
+    { "name": "Hosts" },
     { "name": "Devices" },
     { "name": "Schedules" },
     { "name": "Safety" },
@@ -46,6 +47,30 @@
         "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
         "responses": {
           "200": { "$ref": "#/components/responses/HealthDiagnostics" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/hosts/probe": {
+      "get": {
+        "operationId": "getHostProbe",
+        "tags": ["Hosts"],
+        "summary": "Read side-effect-free host resources and tool readiness",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/HostProbe" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/hosts/providers": {
+      "get": {
+        "operationId": "listHostProviders",
+        "tags": ["Hosts"],
+        "summary": "List planning-only provider profiles and estimated capacity",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/HostProviders" },
           "500": { "$ref": "#/components/responses/InternalError" }
         }
       }
@@ -603,6 +628,16 @@
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthDiagnosticsResponse" } } }
       },
+      "HostProbe": {
+        "description": "Side-effect-free host resource and tool readiness snapshot.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HostProbeResponse" } } }
+      },
+      "HostProviders": {
+        "description": "Planning-only provider profiles and conservative capacity estimates.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HostProvidersResponse" } } }
+      },
       "Device": {
         "description": "Device snapshot.",
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
@@ -1094,6 +1129,139 @@
           "request_id": { "$ref": "#/components/schemas/RequestId" },
           "exported_at": { "$ref": "#/components/schemas/DateTime" },
           "items": { "type": "array", "items": { "$ref": "#/components/schemas/AuditRecord" } }
+        }
+      },
+      "HostCheck": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["status", "source"],
+        "properties": {
+          "status": { "type": "string", "enum": ["pass", "warn", "fail", "unknown", "not_checked"] },
+          "observed": { "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }] },
+          "required": { "oneOf": [{ "type": "string" }, { "type": "number" }, { "type": "boolean" }] },
+          "remediation": { "type": "string", "minLength": 1 },
+          "source": { "type": "string", "minLength": 1 }
+        }
+      },
+      "HostProbeResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "schema", "collected_at", "platform", "resources", "checks", "side_effects"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "schema": { "const": "host-probe.v1" },
+          "collected_at": { "$ref": "#/components/schemas/DateTime" },
+          "platform": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["os", "arch"],
+            "properties": {
+              "os": { "type": "string", "minLength": 1 },
+              "arch": { "type": "string", "minLength": 1 }
+            }
+          },
+          "resources": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cpu_threads", "memory_mib", "available_memory_mib", "disk_free_gib", "vram_mib"],
+            "properties": {
+              "cpu_threads": { "type": "integer", "minimum": 1 },
+              "memory_mib": { "type": "number", "minimum": 0 },
+              "available_memory_mib": { "type": "number", "minimum": 0 },
+              "disk_free_gib": { "oneOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }] },
+              "vram_mib": { "oneOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }] }
+            }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cpu", "memory", "disk", "virtualization", "gpu", "adb", "emulator", "scrcpy"],
+            "properties": {
+              "cpu": { "$ref": "#/components/schemas/HostCheck" },
+              "memory": { "$ref": "#/components/schemas/HostCheck" },
+              "disk": { "$ref": "#/components/schemas/HostCheck" },
+              "virtualization": { "$ref": "#/components/schemas/HostCheck" },
+              "gpu": { "$ref": "#/components/schemas/HostCheck" },
+              "adb": { "$ref": "#/components/schemas/HostCheck" },
+              "emulator": { "$ref": "#/components/schemas/HostCheck" },
+              "scrcpy": { "$ref": "#/components/schemas/HostCheck" }
+            }
+          },
+          "side_effects": { "const": "none" }
+        }
+      },
+      "ProviderCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lifecycle", "health_read", "screen_preview", "user_input", "automation"],
+        "properties": {
+          "lifecycle": { "const": true },
+          "health_read": { "const": true },
+          "screen_preview": { "const": true },
+          "user_input": { "const": false },
+          "automation": { "const": false }
+        }
+      },
+      "ProviderManifest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schema_version", "provider_id", "kind", "planning_only", "capabilities", "requirements", "instance_profile", "max_instances", "notes"],
+        "properties": {
+          "schema_version": { "const": "provider-manifest.v1" },
+          "provider_id": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "enum": ["mock", "avd", "physical_usb", "remote_stream"] },
+          "planning_only": { "type": "boolean" },
+          "capabilities": { "$ref": "#/components/schemas/ProviderCapabilities" },
+          "requirements": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["min_cpu_threads", "min_memory_mib", "min_disk_gib"],
+            "properties": {
+              "min_cpu_threads": { "type": "integer", "minimum": 1 },
+              "min_memory_mib": { "type": "integer", "minimum": 1 },
+              "min_disk_gib": { "type": "number", "minimum": 0 }
+            }
+          },
+          "instance_profile": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cpu_threads", "memory_mib", "disk_gib", "vram_mib", "stream_mbps"],
+            "properties": {
+              "cpu_threads": { "type": "integer", "minimum": 1 },
+              "memory_mib": { "type": "integer", "minimum": 1 },
+              "disk_gib": { "type": "number", "minimum": 0 },
+              "vram_mib": { "type": "number", "minimum": 0 },
+              "stream_mbps": { "type": "number", "minimum": 0 }
+            }
+          },
+          "max_instances": { "type": "integer", "minimum": 1 },
+          "notes": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        }
+      },
+      "ProviderCapacity": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["provider_id", "safe_instances", "control_plane_limit", "effective_instances", "startup_concurrency", "limiting_resources", "unknown_resources", "confidence"],
+        "properties": {
+          "provider_id": { "type": "string", "minLength": 1 },
+          "safe_instances": { "type": "integer", "minimum": 0 },
+          "control_plane_limit": { "type": "integer", "minimum": 0 },
+          "effective_instances": { "type": "integer", "minimum": 0 },
+          "startup_concurrency": { "type": "integer", "minimum": 0 },
+          "limiting_resources": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "unknown_resources": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "confidence": { "type": "string", "enum": ["measured", "estimated", "unknown"] }
+        }
+      },
+      "HostProvidersResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "manifests", "capacity", "planning"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "manifests": { "type": "array", "items": { "$ref": "#/components/schemas/ProviderManifest" } },
+          "capacity": { "type": "array", "items": { "$ref": "#/components/schemas/ProviderCapacity" } },
+          "planning": { "const": "estimated_until_ramp_test" }
         }
       },
       "CapacityMetric": {

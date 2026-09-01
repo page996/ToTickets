@@ -93,3 +93,23 @@ UI 不显示“自动抢票”“成功率”等会诱导越权的功能文案�
 约束：不提供隐式系统路径、不猜测 `PATH`、不接受未知配置键、不把配置写回源码。配置解析失败时控制平面不启动；路径穿越、不可执行文件、地址格式错误和超出资源上限都要 fail closed。
 
 独立性：可在没有 Android 设备和真实平台的机器上单元测试；其 schema 与 `docs/09-dependency-and-reproducible-build.md`、构建清单和 provider manifest 版本化。
+
+## M11：宿主机探测与部署规划（Host Readiness & Planning）
+
+职责：以无副作用方式读取目标宿主机的 CPU、内存、磁盘和显式工具选择状态，加载
+版本化 provider manifest，并给出带资源保留量的保守容量/启动并发估算。
+
+输入：操作系统资源 API、用户明确选择的 SDK/ADB/模拟器/scrcpy 路径、provider
+manifest。不得从 PATH、注册表或用户目录猜测工具，不执行 APK 或真实第三方应用。
+
+输出：`host-probe.v1`、`provider-manifest.v1`、容量规划结果和待人工复核的
+`unknown` 项。响应不包含绝对路径、主机名、环境变量原文、凭据或设备画面。
+
+约束：默认 `side_effects=none`；激活/启动阶段必须与探测阶段分离，并经过单独的人
+工确认、命令 allowlist、资源预留、generation/operation_id 和审计。provider 能力
+中的 `user_input` 与 `automation` 永远为 `false`。
+
+独立性：HostService 的容量函数可以脱离 Android SDK、设备和网络进行单元测试；
+不同宿主机只提供 probe 输入，不改变控制平面协议。当前仅开放 `/hosts/probe` 和
+`/hosts/providers` 两个 GET 端点，真实部署状态控制留待认证/TLS/RBAC 和 Gate C
+通过后实现。
