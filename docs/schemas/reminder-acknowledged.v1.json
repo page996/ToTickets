@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/reminder-acknowledged.v1.json",
+  "title": "ReminderAcknowledgedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sequence", "schedule_id", "state"],
+  "properties": {
+    "sequence": {"type": "integer", "minimum": 1},
+    "schedule_id": {"type": "string", "format": "uuid"},
+    "state": {"const": "human_confirmed"}
+  }
+}

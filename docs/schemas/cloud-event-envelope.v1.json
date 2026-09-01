@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/cloud-event-envelope.v1.json",
+  "title": "CloudEventEnvelopeV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "specversion",
+    "type",
+    "source",
+    "id",
+    "time",
+    "datacontenttype",
+    "schema",
+    "data"
+  ],
+  "properties": {
+    "specversion": {"const": "1.0"},
+    "type": {"type": "string", "minLength": 1},
+    "source": {"const": "control-plane"},
+    "id": {"type": "string", "format": "uuid"},
+    "time": {"type": "string", "format": "date-time"},
+    "subject": {"type": "string", "minLength": 1},
+    "datacontenttype": {"const": "application/json"},
+    "schema": {"type": "string", "format": "uri"},
+    "data": {"type": "object"}
+  }
+}

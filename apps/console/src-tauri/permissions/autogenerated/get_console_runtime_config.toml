@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-console-runtime-config"
+description = "Enables the get_console_runtime_config command without any pre-configured scope."
+commands.allow = ["get_console_runtime_config"]
+
+[[permission]]
+identifier = "deny-get-console-runtime-config"
+description = "Denies the get_console_runtime_config command without any pre-configured scope."
+commands.deny = ["get_console_runtime_config"]

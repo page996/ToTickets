@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/clock-uncertain.v1.json",
+  "title": "ClockUncertainV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sequence", "schedule_id", "offset_ms"],
+  "properties": {
+    "sequence": {"type": "integer", "minimum": 1},
+    "schedule_id": {"type": "string", "format": "uuid"},
+    "offset_ms": {"type": "integer"}
+  }
+}

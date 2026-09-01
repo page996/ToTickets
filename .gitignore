@@ -1,0 +1,35 @@
+# Local runtime and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks
+*.sqlite
+*.sqlite3
+data/
+runtime/
+logs/
+recordings/
+screenshots/
+*.mp4
+*.webm
+
+# Tooling output
+.tools/
+.pnpm-store/
+.runtime/
+node_modules/
+dist/
+build/
+target/
+coverage/
+*.tsbuildinfo
+.pytest_cache/
+__pycache__/
+.venv/
+venv/
+.idea/
+.vscode/

@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/runtime-config.v3.json",
+  "title": "RuntimeConfigV3",
+  "$defs": {
+    "string_value": {"type": "string", "minLength": 1},
+    "env_placeholder": {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"},
+    "origin_value": {"oneOf": [
+      {"$ref": "#/$defs/env_placeholder"},
+      {"type": "string", "format": "uri", "pattern": "^https?://"}
+    ]}
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "api", "storage", "tools", "limits", "policy"],
+  "properties": {
+    "schema_version": {"const": "runtime-config.v3"},
+    "api": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bind_host", "port", "allowed_origins"],
+      "properties": {
+        "bind_host": {"oneOf": [
+          {"$ref": "#/$defs/env_placeholder"},
+          {"type": "string", "format": "ipv4", "pattern": "^127\\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"},
+          {"const": "::1", "$comment": "compliance: loopback-bind-policy-constant"}
+        ]},
+        "port": {"oneOf": [
+          {"type": "integer", "minimum": 1024, "maximum": 65535},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "allowed_origins": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/origin_value"}
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data_dir", "log_dir"],
+      "properties": {
+        "data_dir": {"$ref": "#/$defs/string_value"},
+        "log_dir": {"$ref": "#/$defs/string_value"}
+      }
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["adb", "scrcpy"],
+      "properties": {
+        "adb": {"$ref": "#/$defs/string_value"},
+        "scrcpy": {"$ref": "#/$defs/string_value"},
+        "emulator": {"$ref": "#/$defs/string_value"}
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_devices", "max_schedules", "heartbeat_seconds", "audit_retention_days", "clock_tolerance_ms", "websocket_max_clients", "websocket_max_buffered_bytes", "websocket_max_payload_bytes", "event_replay_batch_size", "event_replay_max_events", "audit_max_records", "operation_queue_max_queued"],
+      "properties": {
+        "max_devices": {"oneOf": [
+          {"type": "integer", "minimum": 1, "maximum": 64},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "max_schedules": {"oneOf": [
+          {"type": "integer", "minimum": 1, "maximum": 100000},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "heartbeat_seconds": {"oneOf": [
+          {"type": "integer", "minimum": 5, "maximum": 300},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "audit_retention_days": {"oneOf": [
+          {"type": "integer", "minimum": 1, "maximum": 3650},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "clock_tolerance_ms": {"oneOf": [
+          {"type": "integer", "minimum": 1, "maximum": 60000},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "websocket_max_clients": {"oneOf": [
+          {"type": "integer", "minimum": 1, "maximum": 1000},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "websocket_max_buffered_bytes": {"oneOf": [
+          {"type": "integer", "minimum": 1024, "maximum": 67108864},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "websocket_max_payload_bytes": {"oneOf": [
+          {"type": "integer", "minimum": 1024, "maximum": 1048576},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "event_replay_batch_size": {"oneOf": [
+          {"type": "integer", "minimum": 1, "maximum": 1000},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "event_replay_max_events": {"oneOf": [
+          {"type": "integer", "minimum": 1, "maximum": 10000},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "audit_max_records": {"oneOf": [
+          {"type": "integer", "minimum": 100, "maximum": 1000000},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "operation_queue_max_queued": {"oneOf": [
+          {"type": "integer", "minimum": 1, "maximum": 100000},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]}
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "idempotency_ttl_seconds", "idempotency_max_entries", "confirmation_ttl_seconds", "confirmation_max_entries", "event_history_size"],
+      "properties": {
+        "version": {"$ref": "#/$defs/string_value"},
+        "idempotency_ttl_seconds": {"oneOf": [
+          {"type": "integer", "minimum": 30, "maximum": 600},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "idempotency_max_entries": {"oneOf": [
+          {"type": "integer", "minimum": 1, "maximum": 100000},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "confirmation_ttl_seconds": {"oneOf": [
+          {"type": "integer", "minimum": 30, "maximum": 3600},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "confirmation_max_entries": {"oneOf": [
+          {"type": "integer", "minimum": 1, "maximum": 100000},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]},
+        "event_history_size": {"oneOf": [
+          {"type": "integer", "minimum": 10, "maximum": 100000},
+          {"type": "string", "minLength": 1, "pattern": "^\\$\\{[A-Z0-9_]+\\}$"}
+        ]}
+      }
+    }
+  }
+}

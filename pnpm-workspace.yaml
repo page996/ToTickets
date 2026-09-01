@@ -1,0 +1,23 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+catalogMode: strict
+
+engineStrict: true
+ignoreScripts: true
+networkConcurrency: 1
+nodeLinker: hoisted
+packageImportMethod: copy
+saveExact: true
+sharedWorkspaceLockfile: true
+strictPeerDependencies: true
+verifyStoreIntegrity: true
+
+minimumReleaseAgeExclude:
+  - '@nestjs/common@11.2.2'
+  - '@nestjs/core@11.2.2'
+  - '@nestjs/platform-express@11.2.2'
+  - '@nestjs/platform-ws@11.2.2'
+  - '@nestjs/testing@11.2.2'
+  - '@nestjs/websockets@11.2.2'

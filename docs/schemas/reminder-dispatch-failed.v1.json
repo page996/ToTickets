@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/reminder-dispatch-failed.v1.json",
+  "title": "ReminderDispatchFailedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sequence", "schedule_id", "reminder_index"],
+  "properties": {
+    "sequence": {"type": "integer", "minimum": 1},
+    "schedule_id": {"type": "string", "format": "uuid"},
+    "reminder_index": {"type": "integer", "minimum": 0}
+  }
+}

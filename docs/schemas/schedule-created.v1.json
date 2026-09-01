@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/schedule-created.v1.json",
+  "title": "ScheduleCreatedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sequence", "schedule_id", "state", "starts_at"],
+  "properties": {
+    "sequence": {"type": "integer", "minimum": 1},
+    "schedule_id": {"type": "string", "format": "uuid"},
+    "state": {"const": "scheduled"},
+    "starts_at": {"type": "string", "format": "date-time"}
+  }
+}

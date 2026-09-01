@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/schedule-updated.v1.json",
+  "title": "ScheduleUpdatedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sequence", "schedule_id", "state"],
+  "properties": {
+    "sequence": {"type": "integer", "minimum": 1},
+    "schedule_id": {"type": "string", "format": "uuid"},
+    "state": {
+      "enum": [
+        "draft",
+        "scheduled",
+        "notified",
+        "human_confirmed",
+        "completed",
+        "failed",
+        "cancelled",
+        "expired"
+      ]
+    }
+  }
+}

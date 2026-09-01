@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/event-stream-sync.v1.json",
+  "title": "EventStreamSyncV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol",
+    "stream_id",
+    "current_sequence",
+    "oldest_available_sequence",
+    "reset_required"
+  ],
+  "properties": {
+    "protocol": {"const": "event-stream.sync.v1"},
+    "stream_id": {"type": "string", "format": "uuid"},
+    "current_sequence": {"type": "integer", "minimum": 0},
+    "oldest_available_sequence": {
+      "oneOf": [
+        {"type": "integer", "minimum": 1},
+        {"type": "null"}
+      ]
+    },
+    "reset_required": {"type": "boolean"}
+  }
+}

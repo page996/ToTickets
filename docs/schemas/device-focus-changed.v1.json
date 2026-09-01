@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/device-focus-changed.v1.json",
+  "title": "DeviceFocusChangedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sequence", "device_id", "focused", "device_sequence"],
+  "properties": {
+    "sequence": {"type": "integer", "minimum": 1},
+    "device_id": {"type": "string", "format": "uuid"},
+    "focused": {"type": "boolean"},
+    "device_sequence": {"type": "integer", "minimum": 1}
+  }
+}

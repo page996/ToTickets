@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/screen-stream-started.v1.json",
+  "title": "ScreenStreamStartedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sequence", "device_id", "stream", "device_sequence"],
+  "properties": {
+    "sequence": {"type": "integer", "minimum": 1},
+    "device_id": {"type": "string", "format": "uuid"},
+    "stream": {"const": "running"},
+    "device_sequence": {"type": "integer", "minimum": 1}
+  }
+}

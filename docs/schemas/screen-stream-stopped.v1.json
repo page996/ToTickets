@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/screen-stream-stopped.v1.json",
+  "title": "ScreenStreamStoppedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sequence", "device_id", "stream", "device_sequence"],
+  "properties": {
+    "sequence": {"type": "integer", "minimum": 1},
+    "device_id": {"type": "string", "format": "uuid"},
+    "stream": {"const": "stopped"},
+    "device_sequence": {"type": "integer", "minimum": 1}
+  }
+}

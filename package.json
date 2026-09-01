@@ -1,0 +1,19 @@
+{
+  "name": "human-ticketing-console",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mock-first, human-in-the-loop Android device operations console.",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": "24.13.0",
+    "pnpm": "11.19.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "test": "pnpm -r --if-present test",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "load:mock": "node scripts/load/mock-control-plane-load.mjs",
+    "test:load:mock": "node scripts/load/mock-control-plane-load.self-test.mjs"
+  }
+}

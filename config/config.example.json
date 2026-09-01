@@ -1,0 +1,39 @@
+{
+  "schema_version": "runtime-config.v3",
+  "api": {
+    "bind_host": "${CONTROL_BIND_HOST}",
+    "port": "${CONTROL_PORT}",
+    "allowed_origins": ["${CONSOLE_ORIGIN}"]
+  },
+  "storage": {
+    "data_dir": "${PROJECT_DATA_DIR}",
+    "log_dir": "${PROJECT_LOG_DIR}"
+  },
+  "tools": {
+    "adb": "${ANDROID_ADB_PATH}",
+    "scrcpy": "${SCRCPY_PATH}",
+    "emulator": "${ANDROID_EMULATOR_PATH}"
+  },
+  "limits": {
+    "max_devices": "${MAX_DEVICES}",
+    "max_schedules": "${MAX_SCHEDULES}",
+    "heartbeat_seconds": "${HEARTBEAT_SECONDS}",
+    "audit_retention_days": "${AUDIT_RETENTION_DAYS}",
+    "clock_tolerance_ms": "${CLOCK_TOLERANCE_MS}",
+    "websocket_max_clients": "${WEBSOCKET_MAX_CLIENTS}",
+    "websocket_max_buffered_bytes": "${WEBSOCKET_MAX_BUFFERED_BYTES}",
+    "websocket_max_payload_bytes": "${WEBSOCKET_MAX_PAYLOAD_BYTES}",
+    "event_replay_batch_size": "${EVENT_REPLAY_BATCH_SIZE}",
+    "event_replay_max_events": "${EVENT_REPLAY_MAX_EVENTS}",
+    "audit_max_records": "${AUDIT_MAX_RECORDS}",
+    "operation_queue_max_queued": "${OPERATION_QUEUE_MAX_QUEUED}"
+  },
+  "policy": {
+    "version": "${POLICY_VERSION}",
+    "idempotency_ttl_seconds": "${IDEMPOTENCY_TTL_SECONDS}",
+    "idempotency_max_entries": "${IDEMPOTENCY_MAX_ENTRIES}",
+    "confirmation_ttl_seconds": "${CONFIRMATION_TTL_SECONDS}",
+    "confirmation_max_entries": "${CONFIRMATION_MAX_ENTRIES}",
+    "event_history_size": "${EVENT_HISTORY_SIZE}"
+  }
+}

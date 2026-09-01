@@ -1,0 +1,1261 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "Human Ticketing Console Control Plane API",
+    "version": "1.0.0",
+    "description": "Machine-readable contract for the local, human-in-the-loop REST control plane. Paths include the versioned protocol prefix and intentionally define no deployment address. The API exposes observation, lifecycle, reminders, explicit human confirmation, and redacted audit operations only."
+  },
+  "tags": [
+    { "name": "Health" },
+    { "name": "Devices" },
+    { "name": "Schedules" },
+    { "name": "Safety" },
+    { "name": "Audit" }
+  ],
+  "paths": {
+    "/api/v1/health/live": {
+      "get": {
+        "operationId": "getHealthLive",
+        "tags": ["Health"],
+        "summary": "Read process liveness without accessing devices",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/HealthLive" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "operationId": "getHealthReady",
+        "tags": ["Health"],
+        "summary": "Read control-plane readiness",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/HealthReady" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/health/diagnostics": {
+      "get": {
+        "operationId": "getHealthDiagnostics",
+        "tags": ["Health"],
+        "summary": "Read bounded non-sensitive runtime diagnostics",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/HealthDiagnostics" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/devices": {
+      "get": {
+        "operationId": "listDevices",
+        "tags": ["Devices"],
+        "summary": "List registered devices",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": { "$ref": "#/components/schemas/DeviceState" }
+          },
+          {
+            "name": "group",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^(?=.*\\S)[^\\\\/\\u0000\\r\\n]+$" }
+          }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/DeviceList" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "operationId": "registerDevice",
+        "tags": ["Devices"],
+        "summary": "Register a read-only mock device",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" },
+          { "$ref": "#/components/parameters/OperatorIdHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RegisterDeviceRequest" } }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Device" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/devices/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/DeviceIdPath" }],
+      "get": {
+        "operationId": "getDevice",
+        "tags": ["Devices"],
+        "summary": "Read one device snapshot",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Device" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/devices/{id}/commands/start": {
+      "parameters": [{ "$ref": "#/components/parameters/DeviceIdPath" }],
+      "post": {
+        "operationId": "startDevice",
+        "tags": ["Devices"],
+        "summary": "Start one device after explicit confirmation",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/DeviceCommandRequest" },
+                  { "type": "object", "properties": { "intent": { "const": "device.start" } } }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Device" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "428": { "$ref": "#/components/responses/ConfirmationRequired" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/devices/{id}/commands/stop": {
+      "parameters": [{ "$ref": "#/components/parameters/DeviceIdPath" }],
+      "post": {
+        "operationId": "stopDevice",
+        "tags": ["Devices"],
+        "summary": "Stop one device and its preview after explicit confirmation",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/DeviceCommandRequest" },
+                  { "type": "object", "properties": { "intent": { "const": "device.stop" } } }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Device" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "428": { "$ref": "#/components/responses/ConfirmationRequired" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/devices/{id}/commands/reconnect": {
+      "parameters": [{ "$ref": "#/components/parameters/DeviceIdPath" }],
+      "post": {
+        "operationId": "reconnectDevice",
+        "tags": ["Devices"],
+        "summary": "Reconnect one device after explicit confirmation",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/DeviceCommandRequest" },
+                  { "type": "object", "properties": { "intent": { "const": "device.reconnect" } } }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Device" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "428": { "$ref": "#/components/responses/ConfirmationRequired" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/devices/{id}/preview/start": {
+      "parameters": [{ "$ref": "#/components/parameters/DeviceIdPath" }],
+      "post": {
+        "operationId": "startDevicePreview",
+        "tags": ["Devices"],
+        "summary": "Start the focused device's read-only preview",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/DeviceCommandRequest" },
+                  { "type": "object", "properties": { "intent": { "const": "preview.start" } } }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Device" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "428": { "$ref": "#/components/responses/ConfirmationRequired" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/devices/{id}/preview/stop": {
+      "parameters": [{ "$ref": "#/components/parameters/DeviceIdPath" }],
+      "post": {
+        "operationId": "stopDevicePreview",
+        "tags": ["Devices"],
+        "summary": "Stop one read-only preview after explicit confirmation",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/DeviceCommandRequest" },
+                  { "type": "object", "properties": { "intent": { "const": "preview.stop" } } }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Device" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "428": { "$ref": "#/components/responses/ConfirmationRequired" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/devices/{id}/focus": {
+      "parameters": [{ "$ref": "#/components/parameters/DeviceIdPath" }],
+      "post": {
+        "operationId": "focusDevice",
+        "tags": ["Devices"],
+        "summary": "Select one focus device without sending input",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  { "$ref": "#/components/schemas/DeviceCommandRequest" },
+                  { "type": "object", "properties": { "intent": { "const": "device.focus" } } }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Device" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "428": { "$ref": "#/components/responses/ConfirmationRequired" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/schedules": {
+      "get": {
+        "operationId": "listSchedules",
+        "tags": ["Schedules"],
+        "summary": "List schedules ordered by start time",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/ScheduleList" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "post": {
+        "operationId": "createSchedule",
+        "tags": ["Schedules"],
+        "summary": "Create a local reminder schedule",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" },
+          { "$ref": "#/components/parameters/OperatorIdHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/CreateScheduleRequest" } }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Schedule" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/schedules/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/ScheduleIdPath" }],
+      "get": {
+        "operationId": "getSchedule",
+        "tags": ["Schedules"],
+        "summary": "Read one schedule",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Schedule" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      },
+      "patch": {
+        "operationId": "updateSchedule",
+        "tags": ["Schedules"],
+        "summary": "Update or cancel a schedule",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" },
+          { "$ref": "#/components/parameters/OperatorIdHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UpdateScheduleRequest" } }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Schedule" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/schedules/{id}/acknowledge": {
+      "parameters": [{ "$ref": "#/components/parameters/ScheduleIdPath" }],
+      "post": {
+        "operationId": "acknowledgeSchedule",
+        "tags": ["Schedules"],
+        "summary": "Record that a human saw a fired reminder",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AcknowledgeScheduleRequest" } }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Schedule" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/clock": {
+      "get": {
+        "operationId": "getClock",
+        "tags": ["Schedules"],
+        "summary": "Read the monotonic clock confidence snapshot",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Clock" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/safety/confirmations": {
+      "post": {
+        "operationId": "issueConfirmation",
+        "tags": ["Safety"],
+        "summary": "Issue a short-lived one-use human confirmation ticket",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/IssueConfirmationRequest" } }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/Confirmation" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "428": { "$ref": "#/components/responses/ConfirmationRequired" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/safety/stop-all": {
+      "post": {
+        "operationId": "stopAllDevices",
+        "tags": ["Safety"],
+        "summary": "Stop all active adapters after explicit confirmation",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          { "$ref": "#/components/parameters/IdempotencyKeyHeader" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/StopAllRequest" } }
+          }
+        },
+        "responses": {
+          "201": { "$ref": "#/components/responses/StopAll" },
+          "403": { "$ref": "#/components/responses/PolicyDenied" },
+          "409": { "$ref": "#/components/responses/ConflictError" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "428": { "$ref": "#/components/responses/ConfirmationRequired" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/audit": {
+      "get": {
+        "operationId": "listAuditRecords",
+        "tags": ["Audit"],
+        "summary": "Page through newest-first redacted audit records",
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestIdHeader" },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "default": 1 }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "device_id",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/AuditPage" },
+          "422": { "$ref": "#/components/responses/ValidationError" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    },
+    "/api/v1/audit/export": {
+      "get": {
+        "operationId": "exportAuditRecords",
+        "tags": ["Audit"],
+        "summary": "Export retained redacted audit records as JSON",
+        "parameters": [{ "$ref": "#/components/parameters/RequestIdHeader" }],
+        "responses": {
+          "200": { "$ref": "#/components/responses/AuditExport" },
+          "500": { "$ref": "#/components/responses/InternalError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "RequestIdHeader": {
+        "name": "X-Request-Id",
+        "in": "header",
+        "required": false,
+        "description": "Optional caller correlation id. Invalid values are replaced with a generated id.",
+        "schema": { "$ref": "#/components/schemas/RequestId" }
+      },
+      "IdempotencyKeyHeader": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/IdempotencyKey" }
+      },
+      "OperatorIdHeader": {
+        "name": "X-Operator-Id",
+        "in": "header",
+        "required": false,
+        "description": "Audit identity for registration and schedule mutations; defaults to local-user.",
+        "schema": { "$ref": "#/components/schemas/OperatorId" }
+      },
+      "DeviceIdPath": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/UuidV4" }
+      },
+      "ScheduleIdPath": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "$ref": "#/components/schemas/UuidV4" }
+      }
+    },
+    "headers": {
+      "RequestId": {
+        "description": "Correlation id echoed in the response body.",
+        "schema": { "$ref": "#/components/schemas/RequestId" }
+      }
+    },
+    "responses": {
+      "HealthLive": {
+        "description": "Process is live.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthLiveResponse" } } }
+      },
+      "HealthReady": {
+        "description": "Core control-plane dependencies are readable.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthReadyResponse" } } }
+      },
+      "HealthDiagnostics": {
+        "description": "Bounded non-sensitive diagnostic counters.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthDiagnosticsResponse" } } }
+      },
+      "Device": {
+        "description": "Device snapshot.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeviceResponse" } } }
+      },
+      "DeviceList": {
+        "description": "Device collection.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DeviceListResponse" } } }
+      },
+      "Schedule": {
+        "description": "Schedule snapshot.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ScheduleResponse" } } }
+      },
+      "ScheduleList": {
+        "description": "Schedule collection.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ScheduleListResponse" } } }
+      },
+      "Clock": {
+        "description": "Clock confidence snapshot.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ClockResponse" } } }
+      },
+      "Confirmation": {
+        "description": "Short-lived one-use confirmation ticket.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConfirmationResponse" } } }
+      },
+      "StopAll": {
+        "description": "All active mock adapters were stopped.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StopAllResponse" } } }
+      },
+      "AuditPage": {
+        "description": "Page of redacted audit records.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuditPageResponse" } } }
+      },
+      "AuditExport": {
+        "description": "Retained redacted audit records.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AuditExportResponse" } } }
+      },
+      "PolicyDenied": {
+        "description": "The operation or supplied content is outside policy.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiErrorResponse" } } }
+      },
+      "NotFound": {
+        "description": "The requested resource was not found.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiErrorResponse" } } }
+      },
+      "ConflictError": {
+        "description": "Current state, capacity, idempotency, or confirmation sequence conflicts with the request.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiErrorResponse" } } }
+      },
+      "ValidationError": {
+        "description": "Request path, query, header, or body validation failed.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiErrorResponse" } } }
+      },
+      "ConfirmationRequired": {
+        "description": "A valid explicit human confirmation is required.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiErrorResponse" } } }
+      },
+      "ServiceUnavailable": {
+        "description": "A bounded queue, cache, ticket store, or adapter is temporarily unavailable.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiErrorResponse" } } }
+      },
+      "InternalError": {
+        "description": "An unexpected internal error occurred without exposing internal details.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ApiErrorResponse" } } }
+      }
+    },
+    "schemas": {
+      "RequestId": {
+        "type": "string",
+        "minLength": 8,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9._:-]+$"
+      },
+      "IdempotencyKey": {
+        "type": "string",
+        "minLength": 8,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9._:-]+$"
+      },
+      "OperatorId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9._:-]+$"
+      },
+      "UuidV4": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+      },
+      "Uuid": {
+        "type": "string",
+        "format": "uuid",
+        "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+      },
+      "DateTime": {
+        "type": "string",
+        "format": "date-time",
+        "pattern": "(?:Z|[+-][0-9]{2}:[0-9]{2})$"
+      },
+      "DeviceState": {
+        "type": "string",
+        "enum": ["offline", "discovering", "booting", "ready", "waiting", "error"]
+      },
+      "StreamState": {
+        "type": "string",
+        "enum": ["stopped", "running"]
+      },
+      "DeviceCapabilities": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["lifecycle", "health_read", "screen_preview", "user_input", "automation"],
+        "properties": {
+          "lifecycle": { "const": true },
+          "health_read": { "const": true },
+          "screen_preview": { "const": true },
+          "user_input": { "const": false },
+          "automation": { "const": false }
+        }
+      },
+      "DeviceResource": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "alias", "provider", "transport", "state", "stream", "focused", "capabilities", "last_seen_at", "sequence"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/UuidV4" },
+          "alias": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "provider": { "const": "mock-adapter" },
+          "transport": { "const": "memory" },
+          "group": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^(?=.*\\S)[^\\\\/\\u0000\\r\\n]+$" },
+          "state": { "$ref": "#/components/schemas/DeviceState" },
+          "stream": { "$ref": "#/components/schemas/StreamState" },
+          "focused": { "type": "boolean" },
+          "capabilities": { "$ref": "#/components/schemas/DeviceCapabilities" },
+          "last_seen_at": { "$ref": "#/components/schemas/DateTime" },
+          "sequence": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "RegisterDeviceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["alias", "provider", "transport"],
+        "properties": {
+          "alias": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "provider": { "const": "mock-adapter" },
+          "transport": { "const": "memory" },
+          "group": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^(?=.*\\S)[^\\\\/\\u0000\\r\\n]+$"
+          }
+        }
+      },
+      "SafeDeviceIntent": {
+        "type": "string",
+        "enum": ["device.start", "device.stop", "device.reconnect", "preview.start", "preview.stop", "device.focus"]
+      },
+      "DeviceCommandRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operator_id", "confirmation_id", "intent", "expected_sequence"],
+        "properties": {
+          "operator_id": { "$ref": "#/components/schemas/OperatorId" },
+          "confirmation_id": { "$ref": "#/components/schemas/Uuid" },
+          "intent": { "$ref": "#/components/schemas/SafeDeviceIntent" },
+          "expected_sequence": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "Reminder": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Reminder targets must be strictly later than the control-plane current time when a schedule is created or updated.",
+        "required": ["offset_seconds", "channel"],
+        "properties": {
+          "offset_seconds": { "type": "integer", "minimum": -604800, "maximum": 0 },
+          "channel": { "type": "string", "enum": ["desktop", "sound"] }
+        }
+      },
+      "ScheduleState": {
+        "type": "string",
+        "enum": ["draft", "scheduled", "notified", "human_confirmed", "completed", "failed", "cancelled", "expired"]
+      },
+      "ScheduleResource": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "starts_at", "timezone", "reminders", "state", "created_at", "updated_at"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/UuidV4" },
+          "label": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "public_reference": { "type": "string", "format": "uri", "pattern": "^https?://(?![^/?#]*@)[^?#]+$" },
+          "starts_at": { "$ref": "#/components/schemas/DateTime" },
+          "timezone": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "reminders": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": { "$ref": "#/components/schemas/Reminder" }
+          },
+          "state": { "$ref": "#/components/schemas/ScheduleState" },
+          "acknowledged_at": { "$ref": "#/components/schemas/DateTime" },
+          "created_at": { "$ref": "#/components/schemas/DateTime" },
+          "updated_at": { "$ref": "#/components/schemas/DateTime" }
+        }
+      },
+      "CreateScheduleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "starts_at", "timezone", "reminders"],
+        "properties": {
+          "label": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "public_reference": { "type": "string", "format": "uri", "pattern": "^https?://(?![^/?#]*@)[^?#]+$" },
+          "starts_at": { "$ref": "#/components/schemas/DateTime" },
+          "timezone": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "reminders": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": { "$ref": "#/components/schemas/Reminder" }
+          }
+        }
+      },
+      "UpdateScheduleRequest": {
+        "description": "Use the cancelled branch alone for cancellation; label/reminders updates cannot be combined with state.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["state"],
+            "properties": { "state": { "const": "cancelled" } }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "anyOf": [
+              { "required": ["label"] },
+              { "required": ["reminders"] }
+            ],
+            "properties": {
+              "label": { "type": "string", "minLength": 1, "maxLength": 128 },
+              "reminders": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 16,
+                "items": { "$ref": "#/components/schemas/Reminder" }
+              }
+            }
+          }
+        ]
+      },
+      "AcknowledgeScheduleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operator_id"],
+        "properties": { "operator_id": { "$ref": "#/components/schemas/OperatorId" } }
+      },
+      "IssueConfirmationRequest": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/IssueDeviceConfirmationRequest" },
+          { "$ref": "#/components/schemas/IssueStopAllConfirmationRequest" }
+        ]
+      },
+      "IssueDeviceConfirmationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operator_id", "intent", "device_id", "confirmed", "expected_sequence"],
+        "properties": {
+          "operator_id": { "$ref": "#/components/schemas/OperatorId" },
+          "intent": { "$ref": "#/components/schemas/SafeDeviceIntent" },
+          "device_id": { "$ref": "#/components/schemas/Uuid" },
+          "confirmed": { "const": true },
+          "expected_sequence": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "IssueStopAllConfirmationRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operator_id", "intent", "confirmed"],
+        "properties": {
+          "operator_id": { "$ref": "#/components/schemas/OperatorId" },
+          "intent": { "const": "safety.stop-all" },
+          "confirmed": { "const": true }
+        }
+      },
+      "StopAllRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operator_id", "confirmation_id", "intent"],
+        "properties": {
+          "operator_id": { "$ref": "#/components/schemas/OperatorId" },
+          "confirmation_id": { "$ref": "#/components/schemas/Uuid" },
+          "intent": { "const": "safety.stop-all" }
+        }
+      },
+      "ApiErrorCode": {
+        "type": "string",
+        "enum": [
+          "policy.denied",
+          "operator.confirmation_required",
+          "command.expired",
+          "command.stale",
+          "idempotency.replay",
+          "device.not_found",
+          "device.busy",
+          "adapter.unavailable",
+          "clock.uncertain",
+          "schema.invalid",
+          "schedule.not_found",
+          "schedule.not_notified",
+          "schedule.started",
+          "request.internal",
+          "request.invalid"
+        ]
+      },
+      "ApiErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "code", "message"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "code": { "$ref": "#/components/schemas/ApiErrorCode" },
+          "message": { "type": "string", "minLength": 1 },
+          "retryable": { "const": true },
+          "details": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "DeviceResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "id", "alias", "provider", "transport", "state", "stream", "focused", "capabilities", "last_seen_at", "sequence"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "id": { "$ref": "#/components/schemas/UuidV4" },
+          "alias": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "provider": { "const": "mock-adapter" },
+          "transport": { "const": "memory" },
+          "group": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^(?=.*\\S)[^\\\\/\\u0000\\r\\n]+$" },
+          "state": { "$ref": "#/components/schemas/DeviceState" },
+          "stream": { "$ref": "#/components/schemas/StreamState" },
+          "focused": { "type": "boolean" },
+          "capabilities": { "$ref": "#/components/schemas/DeviceCapabilities" },
+          "last_seen_at": { "$ref": "#/components/schemas/DateTime" },
+          "sequence": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "DeviceListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "items"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/DeviceResource" } }
+        }
+      },
+      "ScheduleResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "id", "label", "starts_at", "timezone", "reminders", "state", "created_at", "updated_at"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "id": { "$ref": "#/components/schemas/UuidV4" },
+          "label": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "public_reference": { "type": "string", "format": "uri", "pattern": "^https?://(?![^/?#]*@)[^?#]+$" },
+          "starts_at": { "$ref": "#/components/schemas/DateTime" },
+          "timezone": { "type": "string", "minLength": 1, "maxLength": 64 },
+          "reminders": { "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "#/components/schemas/Reminder" } },
+          "state": { "$ref": "#/components/schemas/ScheduleState" },
+          "acknowledged_at": { "$ref": "#/components/schemas/DateTime" },
+          "created_at": { "$ref": "#/components/schemas/DateTime" },
+          "updated_at": { "$ref": "#/components/schemas/DateTime" }
+        }
+      },
+      "ScheduleListResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "items"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/ScheduleResource" } }
+        }
+      },
+      "ClockResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "server_time", "monotonic_supported", "offset_ms", "confidence"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "server_time": { "$ref": "#/components/schemas/DateTime" },
+          "monotonic_supported": { "const": true },
+          "offset_ms": { "type": "integer" },
+          "confidence": { "type": "string", "enum": ["local", "uncertain"] }
+        }
+      },
+      "ConfirmationResponse": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/DeviceConfirmationResponse" },
+          { "$ref": "#/components/schemas/StopAllConfirmationResponse" }
+        ]
+      },
+      "DeviceConfirmationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "confirmation_id", "intent", "expires_at", "expected_sequence"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "confirmation_id": { "$ref": "#/components/schemas/UuidV4" },
+          "intent": {
+            "type": "string",
+            "enum": ["device.start", "device.stop", "device.reconnect", "preview.start", "preview.stop", "device.focus"]
+          },
+          "expires_at": { "$ref": "#/components/schemas/DateTime" },
+          "expected_sequence": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "StopAllConfirmationResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "confirmation_id", "intent", "expires_at"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "confirmation_id": { "$ref": "#/components/schemas/UuidV4" },
+          "intent": { "const": "safety.stop-all" },
+          "expires_at": { "$ref": "#/components/schemas/DateTime" }
+        }
+      },
+      "StopAllResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "stopped", "failed"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "stopped": { "type": "integer", "minimum": 0 },
+          "failed": { "const": 0 }
+        }
+      },
+      "AuditRecord": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "type", "occurred_at", "operator_id", "correlation_id", "policy_version", "result", "metadata"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/UuidV4" },
+          "type": { "type": "string", "minLength": 1 },
+          "occurred_at": { "$ref": "#/components/schemas/DateTime" },
+          "operator_id": { "$ref": "#/components/schemas/OperatorId" },
+          "device_id": { "$ref": "#/components/schemas/UuidV4" },
+          "schedule_id": { "$ref": "#/components/schemas/UuidV4" },
+          "correlation_id": { "$ref": "#/components/schemas/UuidV4" },
+          "policy_version": { "type": "string", "minLength": 1 },
+          "result": { "type": "string", "enum": ["accepted", "rejected"] },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": { "type": ["string", "number", "boolean"] }
+          }
+        }
+      },
+      "AuditPageResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "items", "page", "page_size", "total"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/AuditRecord" } },
+          "page": { "type": "integer", "minimum": 1 },
+          "page_size": { "type": "integer", "minimum": 1, "maximum": 200 },
+          "total": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "AuditExportResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "exported_at", "items"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "exported_at": { "$ref": "#/components/schemas/DateTime" },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/AuditRecord" } }
+        }
+      },
+      "CapacityMetric": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["used", "max", "available", "utilization"],
+        "properties": {
+          "used": { "type": "integer", "minimum": 0 },
+          "max": { "type": "integer", "minimum": 0 },
+          "available": { "type": "integer", "minimum": 0 },
+          "utilization": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      },
+      "HealthLiveResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "schema", "status", "monotonic_uptime_ms"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "schema": { "const": "health.live.v1" },
+          "status": { "const": "ok" },
+          "monotonic_uptime_ms": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "HealthReadyResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "schema", "status", "checks"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "schema": { "const": "health.ready.v1" },
+          "status": { "type": "string", "enum": ["ok", "degraded"] },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["config", "repositories", "event_bus"],
+            "properties": {
+              "config": { "const": "ok" },
+              "repositories": { "const": "ok" },
+              "event_bus": { "const": "ok" }
+            }
+          }
+        }
+      },
+      "KeyedOperationQueueMetric": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["active", "queued", "capacity", "rejected", "active_keys", "queue"],
+        "properties": {
+          "active": { "type": "integer", "minimum": 0 },
+          "queued": { "type": "integer", "minimum": 0 },
+          "capacity": { "type": "integer", "minimum": 0 },
+          "rejected": { "type": "integer", "minimum": 0 },
+          "active_keys": { "type": "integer", "minimum": 0 },
+          "queue": { "$ref": "#/components/schemas/CapacityMetric" }
+        }
+      },
+      "GlobalOperationQueueMetric": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["active", "queued", "capacity", "rejected", "active_shared_operations", "active_exclusive_operations", "queue"],
+        "properties": {
+          "active": { "type": "integer", "minimum": 0 },
+          "queued": { "type": "integer", "minimum": 0 },
+          "capacity": { "type": "integer", "minimum": 0 },
+          "rejected": { "type": "integer", "minimum": 0 },
+          "active_shared_operations": { "type": "integer", "minimum": 0 },
+          "active_exclusive_operations": { "type": "integer", "minimum": 0 },
+          "queue": { "$ref": "#/components/schemas/CapacityMetric" }
+        }
+      },
+      "HealthDiagnosticsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["request_id", "schema", "status", "monotonic_uptime_ms", "resources"],
+        "properties": {
+          "request_id": { "$ref": "#/components/schemas/RequestId" },
+          "schema": { "const": "health.diagnostics.v1" },
+          "status": { "type": "string", "enum": ["ok", "degraded"] },
+          "monotonic_uptime_ms": { "type": "integer", "minimum": 0 },
+          "resources": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["devices", "schedules", "audit", "event_history", "event_bus", "websocket", "idempotency", "confirmations", "operations", "device_state"],
+            "properties": {
+              "devices": { "$ref": "#/components/schemas/CapacityMetric" },
+              "schedules": { "$ref": "#/components/schemas/CapacityMetric" },
+              "audit": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["used", "max", "available", "utilization", "retention_days", "capacity_evictions"],
+                "properties": {
+                  "used": { "type": "integer", "minimum": 0 },
+                  "max": { "type": "integer", "minimum": 0 },
+                  "available": { "type": "integer", "minimum": 0 },
+                  "utilization": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "retention_days": { "type": "integer", "minimum": 1 },
+                  "capacity_evictions": { "type": "integer", "minimum": 0 }
+                }
+              },
+              "event_history": { "$ref": "#/components/schemas/CapacityMetric" },
+              "event_bus": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["current_sequence", "subscribers", "delivery_errors"],
+                "properties": {
+                  "current_sequence": { "type": "integer", "minimum": 0 },
+                  "subscribers": { "type": "integer", "minimum": 0 },
+                  "delivery_errors": { "type": "integer", "minimum": 0 }
+                }
+              },
+              "websocket": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["clients", "queued_events", "queued_bytes", "per_client_buffer_limit_bytes", "rejected_connections", "slow_client_closures", "send_failures"],
+                "properties": {
+                  "clients": { "$ref": "#/components/schemas/CapacityMetric" },
+                  "queued_events": { "type": "integer", "minimum": 0 },
+                  "queued_bytes": { "type": "integer", "minimum": 0 },
+                  "per_client_buffer_limit_bytes": { "type": "integer", "minimum": 1 },
+                  "rejected_connections": { "type": "integer", "minimum": 0 },
+                  "slow_client_closures": { "type": "integer", "minimum": 0 },
+                  "send_failures": { "type": "integer", "minimum": 0 }
+                }
+              },
+              "idempotency": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["entries", "in_flight"],
+                "properties": {
+                  "entries": { "$ref": "#/components/schemas/CapacityMetric" },
+                  "in_flight": { "type": "integer", "minimum": 0 }
+                }
+              },
+              "confirmations": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["tickets"],
+                "properties": { "tickets": { "$ref": "#/components/schemas/CapacityMetric" } }
+              },
+              "operations": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["keyed", "global"],
+                "properties": {
+                  "keyed": { "$ref": "#/components/schemas/KeyedOperationQueueMetric" },
+                  "global": { "$ref": "#/components/schemas/GlobalOperationQueueMetric" }
+                }
+              },
+              "device_state": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["focused", "active_previews"],
+                "properties": {
+                  "focused": { "type": "integer", "minimum": 0 },
+                  "active_previews": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": "toolchain-lock.v1",
+  "node": {
+    "version": "24.13.0",
+    "archive": "node-v24.13.0-win-x64.zip",
+    "download_url": "https://nodejs.org/dist/v24.13.0/node-v24.13.0-win-x64.zip",
+    "sha256": "ca2742695be8de44027d71b3f53a4bdb36009b95575fe1ae6f7f0b5ce091cb88"
+  },
+  "pnpm": {
+    "version": "11.19.0",
+    "package": "pnpm"
+  },
+  "rust": {
+    "version": "1.88.0",
+    "target": "x86_64-pc-windows-msvc",
+    "installer": "rustup-init.exe",
+    "download_url": "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe",
+    "sha256": "86478e53f769379d7f0ebfa7c9aa97cb76ca92233f79aa2cc0dbee2efaac73c7",
+    "channel_manifest_sha256": "431b7c5c0b9a511d8e31d29b378bbc74124e8521f14beb92d3a5a5f7e7e55449"
+  }
+}
+

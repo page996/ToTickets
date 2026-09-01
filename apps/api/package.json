@@ -1,0 +1,44 @@
+{
+  "name": "@ticketing-console/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local, human-in-the-loop NestJS control plane mock",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": "24.13.0"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.2.2",
+    "@nestjs/core": "11.2.2",
+    "@nestjs/platform-express": "11.2.2",
+    "@nestjs/platform-ws": "11.2.2",
+    "@nestjs/websockets": "11.2.2",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.14.4",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "11.0.24",
+    "@nestjs/testing": "11.2.2",
+    "@types/express": "5.0.6",
+    "@types/jest": "29.5.14",
+    "@types/node": "24.13.0",
+    "@types/supertest": "7.2.1",
+    "@types/ws": "8.18.1",
+    "jest": "29.7.0",
+    "supertest": "7.2.2",
+    "ts-jest": "29.4.5",
+    "typescript": "5.9.3"
+  }
+}

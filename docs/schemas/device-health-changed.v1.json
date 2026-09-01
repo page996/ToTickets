@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/device-health-changed.v1.json",
+  "title": "DeviceHealthChangedV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sequence",
+    "device_id",
+    "state",
+    "heartbeat_age_ms",
+    "stream",
+    "device_sequence"
+  ],
+  "properties": {
+    "sequence": {"type": "integer", "minimum": 1},
+    "device_id": {"type": "string", "format": "uuid"},
+    "state": {"enum": ["offline", "discovering", "booting", "ready", "waiting", "error"]},
+    "heartbeat_age_ms": {"type": "integer", "minimum": 0, "maximum": 86400000},
+    "stream": {"enum": ["stopped", "running"]},
+    "device_sequence": {"type": "integer", "minimum": 1}
+  }
+}

@@ -1,0 +1,1 @@
+{"console-main":{"identifier":"console-main","description":"Main window limited to the runtime configuration application command","local":true,"windows":["main"],"permissions":["allow-get-console-runtime-config"]}}
