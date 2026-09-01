@@ -1,26 +1,31 @@
 # 实施路线图
 
-## 当前状态（2026-08-31）
+## 当前状态（2026-09-01）
 
 已由仓库实现和测试确认：pnpm workspace 与隔离工具链、NestJS mock 控制平面、
 Tauri + React 控制台基线、内存 repository、`MockDeviceAdapter`、严格且仅允许
 loopback 监听的 `runtime-config.v3` 加载与 schema、REST/WebSocket 基线、当前事件 payload schema
 及契约测试、人工确认/幂等/有界并发和健康诊断。
 
-部分完成：阶段 1 和阶段 2 已有可运行基线，但完整验收与发布证据仍未闭合；阶段
-2.5 的并发与故障基线仍需按 `docs/10-concurrency-and-operability.md` 和
-`docs/11-load-and-fault-baseline.md` 持续复验。
+阶段 1、阶段 2 和阶段 2.5 已有可运行基线；本轮 R1 离线门禁和 R2 loopback
+浏览器回归已完成并记录在 `docs/12-final-release-audit.md`。这只证明 mock-first
+控制平面的当前验收范围，不等于真实设备或发布级远程部署验收。
 
-明确待办：OpenAPI 请求/响应文档、认证/TLS/RBAC/CSRF、持久化 SQLite repository、
-真实设备的只读 Android 适配器、完整 Playwright/Tauri 验收和发布级运行时 SBOM/
-provenance。上述安全控制完成前不得进行非 loopback 部署；真实适配器仍不得包含
-任何设备输入或购票自动化能力。
+已完成本轮：OpenAPI v1 请求/响应契约及装饰路由契约测试、离线测试/构建/合规/
+SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origin 验证、API
+重启后的控制台 WebSocket 重连验证，以及首次 Git 基线提交。
+
+明确待办：认证/TLS/RBAC/CSRF、持久化 SQLite repository、真实设备的只读 Android
+适配器、Tauri 原生窗口人工验收、发布级运行时 SBOM/provenance 和签名安装包。
+上述安全控制完成前不得进行非 loopback 部署；真实适配器仍不得包含任何设备输入
+或购票自动化能力。
 
 ## 阶段 0：批准与基线（已完成）
 
 交付：范围边界、调研报告、架构、模块规格、接口、威胁模型、测试计划、AGENTS.md 和 ADR。
 
-状态：合规边界、架构、测试计划、项目约束和 ADR 已落盘。是否初始化 Git 属于工作区交付决策，不再作为描述当前代码阶段的条件。
+状态：合规边界、架构、测试计划、项目约束和 ADR 已落盘；已建立首次 Git 基线
+提交 `6fa3bbd`（`chore: establish recovered project baseline`）。
 
 ## 阶段 1：Mock 控制平面（进行中）
 
@@ -33,21 +38,21 @@ provenance。上述安全控制完成前不得进行非 loopback 部署；真实
 待完成：
 
 - 用持久化 SQLite repository 替换当前有界内存 repository，并完成迁移、恢复和保留策略验证。
-- 建立完整 OpenAPI 请求/响应契约；继续补齐 REST schema、审计哈希链和验收证据。
+- 继续补齐 REST schema 细节、审计哈希链和发布级验收证据。
 
 退出条件：Gate A/B 通过；没有真实平台网络访问和敏感字段。
 
 ## 阶段 2：控制台 UI（进行中）
 
-已有 Tauri + React 控制台基线；以下仍作为完整验收范围：
+已有 Tauri + React 控制台基线；本轮浏览器视口回归已通过，以下仍作为完整验收范围：
 
 - Tauri + React/TypeScript；不再保留浏览器独立 UI 作为实现分支。
 - 设备网格、焦点预览占位、日程时间线、提醒确认、审计查询、急停。
 - 严格 IPC/CSP、键盘可达性、错误和 stale 状态显示。
 
-退出条件：Playwright 本地 mock E2E 通过；所有写操作都显示确认和审计结果。
+退出条件：本地 mock 浏览器 E2E 与 Tauri 原生窗口人工验收均通过；所有写操作都显示确认和审计结果。
 
-## 阶段 2.5：并发与可运维性加固（当前迭代）
+## 阶段 2.5：并发与可运维性加固（基线已完成，持续复验）
 
 在 Mock 控制平面和 Tauri 控制台边界内完成：
 
@@ -57,7 +62,10 @@ provenance。上述安全控制完成前不得进行非 loopback 部署；真实
 - WebSocket replay 分批、慢客户端降级、客户端 single-flight refresh 和指数退避；
 - 同设备/跨设备/重复幂等键/慢连接/重启恢复的负载与故障测试。
 
-退出条件：`docs/10-concurrency-and-operability.md` 中的验收指标有可复现实测记录；健康探针在负载期间持续可用；所有新增配置和指标均有 schema、契约测试和依赖记录；未扩大到真实平台或设备输入能力。
+退出条件：`docs/10-concurrency-and-operability.md` 中的验收指标持续有可复现实测记录；健康探针在负载期间持续可用；所有新增配置和指标均有 schema、契约测试和依赖记录；未扩大到真实平台或设备输入能力。
+
+当前证据：mock 负载自测和 API 并发/事件流/重启恢复测试已通过；本轮完整命令、计数和
+浏览器故障注入结果见 `docs/12-final-release-audit.md`。
 
 ## 阶段 3：只读 Android 适配器
 

@@ -2,23 +2,38 @@
 
 ## 审计范围
 
-本记录对应 2026-09-01 的源码、项目隔离工具链和 mock-only 离线验收。它证明本轮列明的构建、依赖图和本地控制平面检查已完成，不代表真实平台接口、购票成功率或任何规避平台规则的能力。
+本记录对应 2026-09-01 的源码、项目隔离工具链、mock-only 离线验收和 loopback 浏览器回归。它证明本轮列明的构建、依赖图、本地控制平面和浏览器视口检查已完成，不代表真实平台接口、购票成功率或任何规避平台规则的能力。
 
 运行时地址、端口、配置文件和临时目录均由环境变量或运行时 fixture 注入；本文不定义部署默认地址。`/api/v1` 与 `/api/v1/events` 仅是版本化协议路径。
 
 ## 通过项
 
-- 本轮离线验收命令及其结果在下方“验收记录”中按实际运行时间补录；旧版本测试数字和产物哈希不再作为证据。
+- 本轮离线验收命令及其结果已按实际运行时间记录；旧版本测试数字和产物哈希不再作为证据。
+- 已建立首次 Git 基线提交：`6fa3bbd`（工作树在本轮文档更新前保持干净）。
 
 ## 桌面回归
 
-本轮未重新启动 API、Vite、Tauri 或浏览器自动化，也未重新生成视觉截图；因此不把历史 `.runtime/final-visual-audit/` 结果当作本轮证据。桌面/移动视口回归仍是发布前人工必做项。
+本轮从最新源码启动了临时 loopback API（首次 PID `38544`，重启演练 PID `27676`，端口
+`59953`）和 Vite（端口 `59954`），并使用本机 Chromium 对桌面 1440px 与移动 390px
+视口进行回归。页面、设备列表、提醒、审计视图均加载成功；稳态无 page error，REST
+快照和合法 WebSocket 同步帧均成功。
 
-本轮只执行协议/组件单元测试，没有声称任何视口、页面错误、溢出、重叠或浏览器网络探针结果。事件流协议由单元测试覆盖 envelope、序列间隙和重连边界；非法 Origin 与真实浏览器页面回归本轮未执行。
+- 桌面视口：`scrollWidth=1440`（视口宽度 1440），55 个可见控件无几何重叠。
+- 390px 视口：`scrollWidth=390`（视口宽度 390），各主视图无横向溢出；设备长列表、提醒和审计控件无几何重叠。
+- 故障注入：停止 API 后控制台进入“连接异常/快照过期”，重启后约 5 秒恢复“控制平面在线”并重新同步空内存快照。
+- Origin：合法 Origin 收到 `event-stream.sync.v1`；浏览器非法 Origin 的 REST 请求被 CORS
+  拦截，WS 以 close code `1008` 和 `origin is not allowed` 拒绝。
+
+React StrictMode 首次 effect 清理会产生一次“WebSocket connection ... closed before the
+connection is established”开发模式警告；API 停机注入期间的 `ERR_CONNECTION_REFUSED`
+也被记录为预期故障证据。两者均未出现在服务恢复后的稳态页面错误中。截图和日志保存在
+本地忽略目录 `.runtime/r2-browser/`，不作为版本化发布产物。Tauri 原生窗口本轮只完成
+`--no-bundle` 构建，尚未替代浏览器回归作为人工窗口验收。
 
 ## 验收记录
 
-以下命令均在项目隔离工具链中执行，未安装依赖、未启动真实设备或真实平台进程：
+以下命令均在项目隔离工具链中执行，未安装依赖、未启动真实设备或真实平台进程；时间为
+2026-09-01 中国标准时间（CST）：
 
 | 命令 | 结果 |
 | --- | --- |
@@ -34,26 +49,40 @@
 | `scripts/cargo.ps1 check --manifest-path apps/console/src-tauri/Cargo.toml --locked` | 通过 |
 | `scripts/cargo.ps1 clippy --manifest-path apps/console/src-tauri/Cargo.toml --locked --all-targets '--' '-D' 'warnings'` | 通过 |
 | `scripts/tauri.ps1 build --no-bundle`（loopback 配置） | 通过；生成 Windows release executable |
+| loopback mock API + Vite + Chromium 桌面/390px 回归（端口由运行时分配） | 通过；页面/REST/WS/视口/控件布局检查完成 |
+| 浏览器非法 Origin REST/WS 验证 | 通过；CORS 拦截，WS close `1008` |
+| API 停止/重启后的控制台重连演练 | 通过；恢复后显示“控制平面在线”并重新同步 |
 
 Windows PowerShell 5.1 不支持 SBOM 脚本使用的 `.NET Path.GetRelativePath`；按项目要求用 PowerShell 7 (`pwsh`) 重跑后通过。该环境差异不影响生成物。
 
 ## 产物哈希
 
-以下路径均相对于仓库根目录，算法为 SHA-256；哈希须在本轮最终构建完成后重新计算，旧哈希已失效：
+以下路径均相对于仓库根目录，算法为 SHA-256；均为本轮 Tauri 重建后重新计算的结果：
 
 | 产物 | SHA-256 |
 | --- | --- |
-| `apps/console/src-tauri/target/release/human-assist-console.exe` | `D2A487F7191C722DDB67222683DDDA5A8CFBEB364C3EBE398FE9E060AE37A62E` |
+| `apps/console/src-tauri/target/release/human-assist-console.exe` | `A25B5AF90F7D9248CF5B817F11588161A16B83A0148DFA8419603B9667938FA7` |
 | `sbom/human-ticketing-console.cdx.json` | `40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B` |
 
 SBOM 是开发/构建视角，覆盖 pnpm lockfile、Cargo.lock 和两个 workspace manifest；正式发布仍需按 [依赖与可复现构建文档](09-dependency-and-reproducible-build.md) 补齐运行时闭包、许可证 notice 和 build provenance。
 
 ## 运行态清理
 
-最终负载使用动态分配的临时 API 进程和 mock fixture。交付前必须只按记录的临时 PID 精确停止该进程，并确认旧服务是否由操作者保留；不得使用按名称批量终止 Node、Rust 或 Tauri 进程的命令。控制台回归应从最新源码启动，并在桌面与 390px 视口检查无控制台/网络错误、无水平溢出或控件重叠，且验证 WebSocket 重连。
+本轮动态 API PID `38544`、重启 PID `27676`、Vite 进程树和浏览器均已按目标精确关闭；端口
+`59953/59954` 无监听（仅可能存在 TCP `TIME_WAIT`）。未使用按名称批量终止 Node、Rust 或
+Tauri 进程的命令。临时截图/日志留在 `.runtime/r2-browser/`，运行态数据未进入 Git。
+
+## 远程扩展前置条件
+
+当前 v3 只允许 loopback，且身份仍是可信本机假设：`X-Operator-Id`/请求体
+`operator_id` 可被本机调用者伪造，尚无真正认证、RBAC、TLS、CSRF、WS 握手认证或资源范围
+隔离。不得仅放宽 `bind_host` 来启用局域网/远程访问。下一版本应先定义独立的 exposure/
+security profile，引入服务端 `Principal/AuthContext`、设备授权、REST/WS 认证和 TLS，再
+升级 OpenAPI/错误契约并完成负向测试。
 
 ## 明确未覆盖
 
 - 不连接或操作真实大麦 App、账号、登录、验证码、实名、订单、支付或设备输入。
 - 不提供高频点击、跨账号同步输入、票档选择、风控规避或任何自动购票接口。
 - 当前构建证明 dependency-reproducible，不声称 Windows 工具链、WebView2、时间戳和调试路径已达到 bit-for-bit 可复现。
+- 当前尚未完成 Tauri 原生窗口人工验收、SQLite 持久化、真实只读 Android adapter 和发布签名/安装包。
