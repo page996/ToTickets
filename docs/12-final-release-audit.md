@@ -37,7 +37,7 @@ connection is established”开发模式警告；API 停机注入期间的 `ERR_
 
 | 命令 | 结果 |
 | --- | --- |
-| `scripts/pnpm.ps1 test`（API 14 suites/150 tests；Console 9 files/81 tests） | 通过 |
+| `scripts/pnpm.ps1 test`（注入 `CONSOLE_TEST_API_BASE_URL`/`CONSOLE_TEST_EVENTS_URL` loopback；API 14 suites/150 tests；Console 9 files/81 tests） | 通过 |
 | `scripts/pnpm.ps1 typecheck`（API、Console） | 通过 |
 | `scripts/pnpm.ps1 build`（Nest/Vite） | 通过 |
 | `scripts/pnpm.ps1 test:load:mock` | 通过 |
