@@ -1,6 +1,6 @@
 # 实施路线图
 
-## 当前状态（2026-09-02）
+## 当前状态（截至 2026-09-03；历史段落按各自时间标注）
 
 已由仓库实现和测试确认：pnpm workspace 与隔离工具链、NestJS mock 控制平面、
 Tauri + React 控制台基线、内存 repository、`MockDeviceAdapter`、严格且仅允许
@@ -115,8 +115,11 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
   provider-host activation port；当前仓库只有默认空 allowlist 与纯策略校验。
 - 将当前 mock-only 控制器扩展为真实 provider 的公开、版本化部署状态控制器，并补齐
   认证/TLS/RBAC/CSRF、provider 命令 allowlist、设备授权和跨进程 provider host 合约；
-  在这些门槛完成前不启动 ADB、模拟器、scrcpy 或任何第三方应用。
-- Gate C 单实例人工观察及随后 2/4 实例 ramp test；测试结果才能替换估算 profile。
+  在这些门槛完成前不得由项目 helper/provider 自动启动 ADB、模拟器、scrcpy 或任何
+  第三方应用；经用户单独批准并绑定 checkpoint 的 operator-run 观察不等同于项目接入。
+- Gate C 单实例人工观察及随后 2/4 实例 ramp test；当前已完成空系统 smoke、双实例窗口和
+  第三实例保护探测，但仍不能用结果替换估算 profile 或宣称安全容量；后续只在低资源
+  profile/更大宿主机决策后继续扩展。
 - 当前仓库尚无可安装 mock APK；首个 Gate C 若先行，只能记录空系统 AVD smoke，不得把
   它写成 mock App 状态机验收。
 
@@ -132,11 +135,12 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
 
 本轮选型结论（2026-09-01）：以官方 Android Studio Emulator/AVD 作为 Gate C
 和 mock 设备的首选 provider，先做单实例只读 PoC；不把第三方闭源模拟器加入核心
-依赖。9 月 1 日历史快照曾未发现 AVD；截至 9 月 2 日，当前开发机已发现用户创建的
+依赖。9 月 1 日历史快照曾未发现 AVD；9 月 2 日预检快照显示开发机已发现用户创建的
 `ticket_test_1`（Android 37 Google APIs、`x86_64`、4 vCPU、2 GiB RAM、10 GiB data），
-但尚未启动。Android Emulator `37.1.11.0` 和 ADB `37.0.1` 可由显式路径读取，未发现
-scrcpy。固件虚拟化/SLAT 可用，但 `emulator -accel-check` 仍报告 hypervisor driver
-未安装，WHPX/Hyper-V 状态需管理员检查。目标宿主机 GPU、虚拟化和并发实例数仍必须
+当时尚未启动（该句为预检时点事实）。Android Emulator `37.1.11.0` 和 ADB `37.0.1` 可由显式路径读取，未发现
+scrcpy。固件虚拟化/SLAT 可用，但预检时点的 `emulator -accel-check` 仍报告 hypervisor
+driver 未安装，WHPX/Hyper-V 状态需管理员检查；后续 operator-run 运行日志另有 WHPX
+operational 证据，二者不能混作同一时点。目标宿主机 GPU、虚拟化和并发实例数仍必须
 实测并记录；详见 `docs/checkpoints/CP-20260902-host-preflight.md` 与
 `docs/13-host-preflight-and-deployment.md`。
 
@@ -174,3 +178,40 @@ Genymotion Desktop 仅作为第二候选；只有在用户明确批准、供应�
 ## 暂不安排的工作
 
 自动登录/验证码、自动抢票、批量同步点击、私有接口、号池概率优化、自动下单/支付、真实订单压测和风控规避均不进入路线图。若需求再次提出，必须先说明拒绝原因，并不会通过改名或拆模块绕过边界。
+
+## 2026-09-03 Gate C 进度补充
+
+用户已完成 `ticket_test_1` 空系统 AVD 的首次人工 smoke：冷启动到 Android 页面约 90
+秒，可到达 Google 加载页和 Android 桌面，画面可持续刷新并支持人工手机式操作；用户
+报告可持续操作且画面正常（未定义时长）。详情和只读交叉核对见
+`docs/checkpoints/CP-20260902-gate-c-empty-avd-smoke.md`。
+
+该结果只关闭“单实例空系统启动/人工观察”的子项，Gate C 总体仍为
+`verified_with_gap`。双实例约 15 分钟量级资源窗口已补齐，但真正挂起/恢复、单实例重复
+与定时 soak、低资源 profile 下的 `1 -> 2 -> 4` ramp、目标宿主机复测、mock APK test-only
+harness、helper manifest/provider-host 和真实平台人工验收仍未完成。旧的 2026-09-01 发布审计段落
+保留其历史时间点，不因本补充而改写；当前部署仍只允许 loopback。
+
+同一阶段（旧 ramp run）已在保留 `ticket_test_1` 的前提下完成两个独立 writable clone 的 operator-run
+并行观察：`ticket_test_2`/`entity2` 与 `ticket_test_3`/`entity3` 均 boot 成功，三台 qemu
+工作集合计约 13.93 GiB、私有内存约 13.41 GiB，宿主 commit 约 96.5%；第 4 台按停止
+门槛未启动，新增实例随后已精确退出。静态 2 GiB/GPU off 被运行时覆盖为 4096 MiB/GPU
+host；该结果只更新 Gate C 的压力证据，不更新 `safe_instances` 或部署默认值。详见
+`docs/checkpoints/CP-20260902-gate-c-ramp-2-4.md`。
+
+### 2026-09-03 多实例 follow-up 门槛
+
+用户批准继续增加实例后，已完成双实例固定窗口、第三实例带保护启动探测和回收后稳定
+窗口；详细证据见 `docs/checkpoints/CP-20260903-gate-c-multi-followup.md`。当前有效结论
+是：现有 profile 本轮可验证的短时观察上限为 2 台；第三台在 Android boot 前使 commit
+达约 95.98%，因此安全扩展门槛被触发；第 4 台未启动（`entity4` 仅配置文件）。这不更新 provider 的
+`safe_instances`/API `max_devices`，也不表示真实 APK 或串流并发能力。
+
+下一阶段依赖重大决策：选用真正生效的低 RAM/图形 profile，或改用更大提交内存的宿主机；
+在该决策前只做单实例 repeat/soak、15 分钟资源与 I/O/GPU 观测，不继续当前 profile 的
+第 4 台压力试验。
+
+2026-09-03 追加的双实例延长基线已覆盖约 15 分钟量级资源窗口（实际采样 914.2 秒，
+含明确记录的分段间隔）；两台健康、commit `81.446--83.260%`。这只关闭了当前 profile
+的一项短时资源观察，不改变低资源 profile、GPU/I/O 归因、目标宿主机复测、mock APK
+和真实 provider 的未完成状态。

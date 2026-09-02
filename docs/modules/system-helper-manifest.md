@@ -80,3 +80,12 @@ APK，不处理账号/凭据，不发送设备输入，也不拥有 API/Console/
 
 关联记录：`docs/adr/0006-system-helper-manifest-boundary.md`、
 `docs/checkpoints/CP-20260902-host-preflight.md`。
+
+2026-09-03 的多实例压力观察另见
+`docs/checkpoints/CP-20260902-gate-c-ramp-2-4.md`：该阶段是用户批准的 operator-run
+实验，未通过本模块 activation plan，也未把 ADB/emulator 写入项目 helper allowlist；
+`entries=[]` 和 `execution=not_performed` 约束保持不变。
+
+本次后续保护探测的完整记录见
+`docs/checkpoints/CP-20260903-gate-c-multi-followup.md`；第三实例因 commit 保护而停止
+不改变 allowlist、helper 能力边界或 provider 授权状态。

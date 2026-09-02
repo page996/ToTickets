@@ -190,7 +190,7 @@ AVD 为空不应覆盖后续创建的 AVD。真实大麦 APK 兼容性、包体�
 （`apps/api/test/openapi-contract.spec.ts`）只验证上述 mock 状态、容量、generation、幂等、
 审计和事件边界；测试通过不等于 Gate C 通过，也不授权启动任何外部实例。
 
-## 7. 当前宿主机快照（2026-09-02）
+## 7. 宿主机预检快照（2026-09-02，预检时点）
 
 本节来自 `docs/checkpoints/CP-20260902-host-preflight.md` 的只读检查，面向本机事实，
 不能外推到其他部署环境：
@@ -204,10 +204,10 @@ AVD 为空不应覆盖后续创建的 AVD。真实大麦 APK 兼容性、包体�
 - 主机为 AMD Ryzen 9 7945HX、32 逻辑线程、约 31.22 GiB 内存；检查时 C/E 盘可用约
   76.99/261.24 GiB；NVIDIA RTX 5080 Laptop `nvidia-smi` 报告总显存 16303 MiB、可用
   14239 MiB。GPU 结果仍需在启用 GPU 的 AVD profile 下复测。
-- 固件虚拟化、SLAT 和 VM monitor extensions 为 true；`HypervisorPresent=False`，
+- 固件虚拟化、SLAT 和 VM monitor extensions 为 true；`HypervisorPresent=False`（预检时点），
   Windows 可选功能因当前权限不足未确认；`emulator -accel-check` 返回 code 6，提示
   Android Emulator hypervisor driver 未安装。因此当前 Gate C 为 `blocked_pending_acceleration`，
-  不能启动并发实例。
+  不能据该预检快照授权启动并发实例；后续用户人工 smoke/ramp 另见第 9 节。
 - 预检结束时无 emulator、ADB server 或 5037 listener。一次版本检查期间误调用
   `adb devices` 曾短暂启动 ADB server，已用 `adb kill-server` 清理并记录在 checkpoint；
   后续预检禁止该命令。
@@ -226,3 +226,42 @@ App 状态机，必须另建独立 test-only mock APK 模块、模块书和 chec
 环境、无网络/无写入数据策略、资源上限、生命周期、审计 checkpoint 与撤销方式，并在
 单独 R2 checkpoint 和人工确认后才可交给未来 provider-host。当前 helper 校验只生成
 `execution=not_performed` plan，不执行任何命令。
+
+## 9. 2026-09-03 Gate C 多实例观察补充
+
+日期化证据见 `docs/checkpoints/CP-20260902-gate-c-ramp-2-4.md`。在保留用户原有
+`ticket_test_1` 的前提下，operator 创建了独立 `ticket_test_2`/`entity2` 与
+`ticket_test_3`/`entity3` writable clone，分别在 console 5556/5558 启动并完成 Android
+boot；两台新增实例与原实例并行时，三台 qemu 工作集合计约 13.93 GiB、私有内存约
+13.41 GiB，宿主可用内存约 4.39--4.49 GiB，commit 约 96.5%。第 4 台未启动，停止
+条件已触发。新增实例已按 serial 精确 graceful stop，原 `ticket_test_1` 保持在线。
+
+这次结果只证明当前宿主机/当前有效运行配置的多实例压力边界，不更新
+`safe_instances`、`max_devices` 或 provider 默认值。静态 AVD 配置的 2 GiB/GPU off
+被 emulator 运行时覆盖为 4096 MiB/GPU host；每实例独立目录逻辑占用约 5.28 GiB，含
+约 4 GiB snapshot ram image，不能等同实时磁盘写入或 APK 安装后占用。Windows WER 同期
+存在 qemu `RADAR_PRE_LEAK_64` 事件但没有明确崩溃归因，固定时长 soak、15 分钟资源曲线、
+I/O/GPU 温度和第 4 台仍未闭合。
+
+本阶段启动属于用户批准的 operator-run 设备实验，不是项目 helper activation；没有真实
+APK/账号/输入/业务请求，manifest 仍为空，API/Console/provider-host 也未接入 AVD。
+
+## 2026-09-03 多实例容量复核补充
+
+本次 follow-up 的可复核记录见
+`docs/checkpoints/CP-20260903-gate-c-multi-followup.md`。宿主机在当前 Android 37
+`x86_64` profile 下完成双实例 5 分钟与回收后 10 分钟稳定观察；第三实例在 boot 前触发
+commit 保护（峰值约 95.979%），因此部署建议暂定为“2 台观测上限，未形成 safe
+capacity”。单实例/目录低于或约 10 GiB 的说法不能替代工作集、Private/Commit、qcow2
+逻辑文件和实际 I/O 四项预算。
+
+新增 `entity4` 只生成了 AVD 配置文件，未启动、未纳入 provider。要继续评估 3/4 台，
+必须先选择实际生效的低 RAM/图形 profile，或提供更大物理/提交内存的宿主机；不得在
+当前提交余量下盲试第 4 台。`entity2` 是用户持有的在线实例，部署工具不能自动停止、
+重启或删除它。
+
+双实例延长基线（约 15 分钟量级）已追加到
+`CP-20260903-gate-c-baseline-15m.md`：实际采样 914.2 秒（含明确记录的分段间隔），
+ADB/boot/唤醒状态全程正常，宿主 commit `81.446--83.260%`。该窗口仅作为目标宿主机
+的观测输入，不能把当前实例数写入 `safe_instances`，也不能替代低资源 profile、GPU/I/O
+和人工 provider 验收。

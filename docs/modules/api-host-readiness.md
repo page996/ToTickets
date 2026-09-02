@@ -190,3 +190,40 @@ runner；为纯函数和 service 建立正式 test-only port；为递归子模�
 `docs/12`/`docs/13` 历史内容的前提下持续追加 host snapshot。helper manifest 的策略和
 负向测试已由 `docs/modules/system-helper-manifest.md` 与
 `apps/api/test/helper-manifest.spec.ts` 登记，实际 helper 条目仍待 R2 批准。
+
+## 10. 2026-09-03 Gate C 空系统 smoke 补充
+
+新的人工/只读证据见
+`docs/checkpoints/CP-20260902-gate-c-empty-avd-smoke.md`。用户已在
+`ticket_test_1`（Android 37、Google APIs、`x86_64`、4 vCPU、2 GiB RAM、10 GiB data、
+GPU disabled）完成一次空系统观察：冷启动约 90 秒，可进入 Google 加载页和 Android
+界面，画面持续刷新并可进行人工手机式操作；用户报告可持续操作且画面正常（未定义时长）。该结果只
+把“单实例启动/人工观察”标为 `passed (manual)`，把稳定性标为未定时的
+`partial_observation`，不把 AVD 注册为项目 helper 或 provider。
+
+本模块整体仍为 `partial`/`verified_with_gap`：资源快照、真实挂起/恢复语义、固定时长
+重复与 soak、`1 -> 2 -> 4` ramp、目标宿主机复测和 mock APK 尚未闭合。一次只读采样显示
+qemu 宿主工作集约 5.2 GiB、私有内存约 2.16 GiB，不能用 guest RAM 静态值替代并发预算。
+Device Manager 的 WHPX 提示与 `systeminfo`/`emulator -accel-check` 结果不一致，需保留
+为开放风险；不能据此放宽 helper 白名单或 loopback 边界。
+
+多实例观察见 `docs/checkpoints/CP-20260902-gate-c-ramp-2-4.md`：独立 `entity2`/`entity3`
+均 boot 成功，但三台 qemu 并行时宿主 commit 约 96.5%，第 4 台按门槛未启动。该证据只
+用于后续 planner/profile 复测，不能直接替换 `provider-manifest.v1` 中的规划值；固定时长
+idle/soak、I/O、GPU/温度和 writable clone 的实际写入曲线仍待补齐。
+
+## 2026-09-03 follow-up 证据
+
+`docs/checkpoints/CP-20260903-gate-c-multi-followup.md` 补充了一次独立的多实例容量复核：
+双实例在 5 分钟和回收后约 10 分钟窗口中 ADB/boot/进程均稳定；第三实例启动探测在
+commit `95.979%` 前触发保护并精确退出，未完成 boot；第四实例未启动。该 follow-up 是
+宿主机事实输入，不是 `HostService` 的部署默认值，也没有激活 helper/provider。
+
+本模块的容量结论继续采用 fail-safe：只有目标宿主机的显式 profile、有效运行配置和固定
+窗口证据才能进入未来 `HostPlannerPort` 输入；静态 `config.ini` 的 2 GiB/GPU-off 与
+运行时 4096 MiB/GPU-host 不一致，低资源参数未形成可用 profile。当前 M11 的治理状态
+仍为 `partial`，真实 provider、认证、跨进程恢复和正式 test-only probe port 未完成。
+
+`CP-20260903-gate-c-baseline-15m.md` 又记录了双实例约 15 分钟量级延长基线：实际采样
+914.2 秒，commit `81.446--83.260%`、Private 合计 `7.478--7.480 GiB`，两台 ADB/boot/
+唤醒状态全程正常。该证据仍是宿主机事实输入，不是 `safe_instances` 或 provider 接入授权。

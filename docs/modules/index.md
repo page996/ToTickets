@@ -1,7 +1,7 @@
 # 模块登记索引
 
 **索引版本**：`module-registry.v1`
-**更新时间**：2026-09-02
+**更新时间**：2026-09-03
 **证据基线**：`bdf9a3f`（本阶段开始）；本阶段 checkpoint：
 `docs/checkpoints/CP-20260902-module-governance-baseline.md`
 
@@ -30,26 +30,27 @@
 | `M4-human-confirmation` | `apps/api/src/safety` + `common/confirmation` | active，脱机确认边界已验证 | partial | `CP-20260902-module-governance-baseline :: M4` | `/api/v1/safety/*`、confirmation ticket | `confirmation.spec.ts`、`api.e2e.spec.ts` | 认证/RBAC/CSRF |
 | `M5-alias-task-registry` | 目前只有 device alias/group、schedule label 字段，无独立目录 | planned | partial | `CP-20260902-module-governance-baseline :: M5` | 尚无独立契约 | 无独立模块测试 | 明确数据模型和持久化 owner |
 | `M6-audit-security` | `apps/api/src/audit` + `common/audit/policy/http` | active，脱敏/拒绝路径已验证 | partial | `CP-20260902-module-governance-baseline :: M6` | `/api/v1/audit*`、审计事件 | `api-exception-filter.spec.ts`、`api.e2e.spec.ts` | 认证/RBAC、哈希链、SQLite 保留策略 |
-| `M7-adapter-layer` | `apps/api/src/devices/device-adapter.ts` 及 provider 边界 | active，仅 Mock；真实 adapter planned | partial | `CP-20260902-module-governance-baseline :: M7` | `DeviceAdapter` in-process port | `device-adapter.spec.ts` | versioned provider-host port、helper 白名单、Gate C |
+| `M7-adapter-layer` | [`device-adapter.md`](device-adapter.md)、`apps/api/src/devices/device-adapter.ts` 及 provider 边界 | active，仅 Mock；真实 adapter planned | partial | `CP-20260902-module-governance-baseline :: M7`；`CP-20260902-gate-c-empty-avd-smoke :: M7`；`CP-20260902-gate-c-ramp-2-4 :: M7`；`CP-20260903-gate-c-multi-followup :: M7`；`CP-20260903-gate-c-baseline-15m :: M7` | `DeviceAdapter` in-process port | `device-adapter.spec.ts` | versioned provider-host port、helper 白名单、Gate C |
 | `M8-mock-app-harness` | `apps/api/test` fixtures/`MockDeviceAdapter`；无独立 mock-app 包 | active | partial | `CP-20260902-module-governance-baseline :: M8` | test-only fixture/adapter port | API/Console 单元与契约测试 | 建立 `local.mock.ticketing` harness 包和登记 |
 | `M9-console-contract-ui` | `apps/console/src` + `src-tauri` | active，loopback 浏览器受控复验通过（host-assisted） | partial | `CP-20260902-module-governance-baseline :: M9`；`CP-20260902-loopback-browser-regression` | REST/WS client、Tauri IPC runtime config | Console 9 files/81 tests；R2 `verified_with_gap` 证据 | 锁定/项目内 test-only 浏览器入口；Tauri 原生窗口人工验收；host/deployment UI |
 | `M10-config-supply-chain` | `apps/api/src/config`、`scripts`、manifest/SBOM docs | active，基础门禁有历史证据 | partial | `CP-20260902-module-governance-baseline :: M10` | `runtime-config.v3`、toolchain/config schemas | `config.spec.ts`、compliance/SBOM tests | 统一内部入口、provenance、phantom dependency |
-| `M11-host-readiness` | `apps/api/src/hosts`；详见 [`api-host-readiness.md`](api-host-readiness.md) | active，只读 planning 已由代码/测试确认 | partial | `CP-20260902-module-governance-baseline :: M11` | `/api/v1/hosts/probe`、`/api/v1/hosts/providers`；`host-probe.v1`/`provider-manifest.v1` | `host-service.spec.ts`、`openapi-contract.spec.ts`、`api.e2e.spec.ts`、`config.spec.ts`、`exposure-profile.spec.ts` | HostPlannerPort、目标宿主机 probe、AVD Gate C |
+| `M11-host-readiness` | `apps/api/src/hosts`；详见 [`api-host-readiness.md`](api-host-readiness.md) | active，只读 planning 已由代码/测试确认 | partial | `CP-20260902-module-governance-baseline :: M11`；`CP-20260902-gate-c-empty-avd-smoke :: M11`；`CP-20260902-gate-c-ramp-2-4 :: M11`；`CP-20260903-gate-c-multi-followup :: M11`；`CP-20260903-gate-c-baseline-15m :: M11` | `/api/v1/hosts/probe`、`/api/v1/hosts/providers`；`host-probe.v1`/`provider-manifest.v1` | `host-service.spec.ts`、`openapi-contract.spec.ts`、`api.e2e.spec.ts`、`config.spec.ts`、`exposure-profile.spec.ts` | HostPlannerPort、目标宿主机 probe、AVD Gate C |
 
 ## 后续扩展模块（不属于原始 M1-M11）
 
 | canonical ID | 源码边界/入口 | implementation | governance | checkpoint | 对外契约 | 测试证据 | 下一门槛 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `M12-deployment-state` | `apps/api/src/deployments` | active（仅 mock-only 实现；真实执行未启用） | partial | `CP-20260902-module-governance-baseline :: M12-extension` | `/api/v1/deployments*`、deployment state/events（版本化） | `deployment-service.spec.ts`、`deployment-api.spec.ts`、OpenAPI contract | 独立 provider-host、认证/TLS/RBAC；不得把本行视为真实部署授权 |
-| `M13-system-helper-policy` | `apps/api/src/helpers`、`config/system-helper-manifest*.json` | active（策略/校验；无 helper 启用） | partial | `CP-20260902-host-preflight :: M13` | `system-helper-manifest.v1`（版本化配置；当前空 allowlist） | `helper-manifest.spec.ts` | 目标宿主机 provenance/hash、R2 批准、provider-host 生命周期与资源隔离 |
+| `M13-system-helper-policy` | `apps/api/src/helpers`、`config/system-helper-manifest*.json` | active（策略/校验；无 helper 启用） | partial | `CP-20260902-host-preflight :: M13`；`CP-20260902-gate-c-ramp-2-4 :: M13`；`CP-20260903-gate-c-multi-followup :: M13`；`CP-20260903-gate-c-baseline-15m :: M13` | `system-helper-manifest.v1`（版本化配置；当前空 allowlist） | `helper-manifest.spec.ts` | 目标宿主机 provenance/hash、R2 批准、provider-host 生命周期与资源隔离 |
 
 ## 已登记的示范模块书
 
 | canonical ID | 文件 | 覆盖范围 | 当前结论 | checkpoint |
 | --- | --- | --- | --- | --- |
-| `M11-host-readiness` | [`api-host-readiness.md`](api-host-readiness.md) | Host probe、内置 provider registry、容量规划、REST 边界及递归子模块清单 | implementation active；governance partial | `CP-20260902-module-governance-baseline :: M11` |
+| `M11-host-readiness` | [`api-host-readiness.md`](api-host-readiness.md) | Host probe、内置 provider registry、容量规划、REST 边界及递归子模块清单 | implementation active；governance partial | `CP-20260902-module-governance-baseline :: M11`；`CP-20260902-gate-c-empty-avd-smoke :: M11`；`CP-20260902-gate-c-ramp-2-4 :: M11`；`CP-20260903-gate-c-multi-followup :: M11`；`CP-20260903-gate-c-baseline-15m :: M11` |
+| `M7-adapter-layer` | [`device-adapter.md`](device-adapter.md) | DeviceAdapter port、Mock lifecycle、只读 preview 和真实 adapter 门槛 | implementation active；governance partial | `CP-20260902-module-governance-baseline :: M7`；`CP-20260903-release-handoff :: M7` |
 | `CON-C3-control-plane-client` | [`console-control-plane-client.md`](console-control-plane-client.md) | Console REST transport、事件流、runtime boundary、refresh 协调及其子模块清单 | implementation active；governance partial | `CP-20260902-module-governance-baseline :: CON-C3` |
-| `M13-system-helper-policy` | [`system-helper-manifest.md`](system-helper-manifest.md) | 版本化 helper provenance/能力/路径/资源策略与默认拒绝校验 | implementation active；governance partial | `CP-20260902-host-preflight :: M13` |
+| `M13-system-helper-policy` | [`system-helper-manifest.md`](system-helper-manifest.md) | 版本化 helper provenance/能力/路径/资源策略与默认拒绝校验 | implementation active；governance partial | `CP-20260902-host-preflight :: M13`；`CP-20260902-gate-c-ramp-2-4 :: M13`；`CP-20260903-gate-c-multi-followup :: M13`；`CP-20260903-gate-c-baseline-15m :: M13` |
 
 其余模块尚未拥有独立书页。此状态是治理缺口，不是实现失败；在逐模块书和 test-only
 harness 建立前，不能把索引中的 `active` 解读为“模块独立化已完成”。

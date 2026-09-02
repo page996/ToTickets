@@ -6,6 +6,16 @@
 
 运行时地址、端口、配置文件和临时目录均由环境变量或运行时 fixture 注入；本文不定义部署默认地址。`/api/v1` 与 `/api/v1/events` 仅是版本化协议路径。
 
+## 当前状态摘要（截至 2026-09-03）
+
+本文开头的审计表是 2026-09-01 的历史基线；后续日期章节是不可覆盖的追加事实，不能
+把不同时间点的测试数字或产物哈希混作同一轮结果。当前可复核状态为：项目隔离工具链
+复验 API 19 suites/203 tests、Console 9 files/81 tests 通过；最近一次隔离重建的 release
+executable 哈希为 `5E074D...`（R1 先前构建为 `B80C0BC...`），SBOM 哈希为
+`40E5C54F...`；Gate C 当前
+profile 已取得双实例约 15 分钟量级观察证据，但第三实例启动峰值触发保护，仍为
+`verified_with_gap`，对外暴露继续限制为 loopback。
+
 ## 通过项
 
 - 本轮离线验收命令及其结果已按实际运行时间记录；旧版本测试数字和产物哈希不再作为证据。
@@ -37,12 +47,12 @@ connection is established”开发模式警告；API 停机注入期间的 `ERR_
 
 ## 验收记录
 
-以下命令均在项目隔离工具链中执行，未安装依赖、未启动真实设备或真实平台进程；时间为
-2026-09-01 中国标准时间（CST）：
+以下表格中的命令均在项目隔离工具链中执行，未安装依赖、未启动真实设备或真实平台
+进程；时间为 2026-09-01 中国标准时间（CST），仅代表该历史离线阶段：
 
 | 命令 | 结果 |
 | --- | --- |
-| `scripts/pnpm.ps1 test`（注入 `CONSOLE_TEST_API_BASE_URL`/`CONSOLE_TEST_EVENTS_URL` loopback；API 18 suites/183 tests；Console 9 files/81 tests） | 通过（含 HostProbe/容量/exposure/deployment 契约与配置路径负向测试） |
+| `scripts/pnpm.ps1 test`（注入 `CONSOLE_TEST_API_BASE_URL`/`CONSOLE_TEST_EVENTS_URL` loopback；API 18 suites/183 tests；Console 9 files/81 tests；2026-09-01 历史快照，已由后续 R1 复验取代） | 通过（含 HostProbe/容量/exposure/deployment 契约与配置路径负向测试） |
 | `scripts/pnpm.ps1 typecheck`（API、Console） | 通过 |
 | `scripts/pnpm.ps1 build`（Nest/Vite） | 通过 |
 | `scripts/pnpm.ps1 test:load:mock` | 通过 |
@@ -71,7 +81,7 @@ R2 浏览器证据在上述构建完成后生成，并与当前 API dist 的时�
 
 Windows PowerShell 5.1 不支持 SBOM 脚本使用的 `.NET Path.GetRelativePath`；按项目要求用 PowerShell 7 (`pwsh`) 重跑后通过。该环境差异不影响生成物。
 
-## 产物哈希
+## 产物哈希（2026-09-01 历史快照；非当前构建）
 
 以下路径均相对于仓库根目录，算法为 SHA-256；均为本轮 Tauri 重建后重新计算的结果：
 
@@ -81,6 +91,29 @@ Windows PowerShell 5.1 不支持 SBOM 脚本使用的 `.NET Path.GetRelativePath
 | `sbom/human-ticketing-console.cdx.json` | `40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B` |
 
 SBOM 是开发/构建视角，覆盖 pnpm lockfile、Cargo.lock 和两个 workspace manifest；正式发布仍需按 [依赖与可复现构建文档](09-dependency-and-reproducible-build.md) 补齐运行时闭包、许可证 notice 和 build provenance。
+
+## 当前构建哈希（R1 复验时点，2026-09-02）
+
+以下是 R1 工作树实际复验的 canonical 记录；重新构建后必须重新计算，不能与上面的
+2026-09-01 历史快照混用。
+
+| 产物 | SHA-256 |
+| --- | --- |
+| `apps/console/src-tauri/target/release/human-assist-console.exe` | `B80C0BC65048E5B4E7CF3BF67D2A80D99C31BE48D15F30A1D59AE53FE1CB7EAD` |
+| `sbom/human-ticketing-console.cdx.json` | `40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B` |
+
+## 最新隔离门禁复验（2026-09-03）
+
+恢复接管后的文档修正完成后，使用项目 `.tools` Node/pnpm/Rust wrapper 再次运行全量测试、
+类型检查、Nest/Vite 构建、mock load self-test、合规与 SBOM 检查、Rust fmt/check/clippy
+及 Tauri `build --no-bundle`。API `19 suites/203 tests`、Console `9 files/81 tests` 和
+其余门禁均通过；没有启动 API/Vite/Tauri 窗口、ADB 或模拟器。该次 Tauri 重建产生的当前
+exe 哈希如下；构建时间差异导致它与 R1 的 `B80C...` 不同，不宣称 bit-for-bit 可复现。
+
+| 产物 | SHA-256 |
+| --- | --- |
+| `apps/console/src-tauri/target/release/human-assist-console.exe` | `5E074D800FE968A62C656D7143BD1FCD607FED8B454ADCE65524544682D1A485` |
+| `sbom/human-ticketing-console.cdx.json` | `40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B` |
 
 ## 运行态清理
 
@@ -154,3 +187,56 @@ driver 未安装，GPU/虚拟化/并发和真实 APK 兼容性仍未验收。完
   时间点哈希，不覆盖前文历史哈希，也不构成 bit-for-bit 可复现承诺。
 - 第一次 Tauri 调用因未注入 `CONSOLE_API_BASE_URL`/`CONSOLE_EVENTS_URL` 按设计拒绝，
   补齐后重跑成功；全程未启动 AVD、ADB、API、Vite、Tauri 窗口或真实平台进程。
+
+## Gate C 多实例观察补充（2026-09-03，本地日期）
+
+本节是 R1 之后的独立 R2 运行记录，不改写前文 2026-09-01/09-02 的历史快照。详情见
+`docs/checkpoints/CP-20260902-gate-c-ramp-2-4.md`，脱敏聚合报告位于被忽略的
+`.runtime/r2-avd-ramp-20260902-1634/ramp-summary.json`（SHA-256
+`389E37D0D1EE89CFAA349DDD675E6265252F52E5337B9B597F829162E6E13495`）。
+
+- 用户原有 `ticket_test_1` 保持在线；本轮新增独立 writable clones `ticket_test_2`/
+  `entity2` 和 `ticket_test_3`/`entity3`，均为 Android 37 Google APIs `x86_64`。
+- 两个新增实例分别在 console 5556/5558 boot 完成，启动日志约 52.0/51.4 秒；三台
+  并行时 qemu 工作集合计约 13.93 GiB、私有内存约 13.41 GiB，宿主可用内存降至
+  4.39--4.49 GiB，commit 约 96.5%，因此第 4 台未启动。
+- 新增实例已按精确 serial `emu kill` graceful stop，复核仅原 `emulator-5554` 和用户
+  ADB daemon 保留；未启动项目 API/Vite/Tauri、未安装 APK、未访问真实购票平台。
+- 静态 `config.ini` 的 2 GiB/GPU off 与运行时 `hardware-qemu.ini` 的 4096 MiB/GPU
+  host 不一致；clone 目录各约 5.28 GiB logical（其中约 4 GiB 为 snapshot ram image）。
+  这不能替代 writable 数据 I/O、15 分钟 soak、GPU/温度和第 4 台测试。
+- Windows Application log 出现 qemu `RADAR_PRE_LEAK_64` 事件，未观察到明确崩溃；它是
+  后续稳定性复核的风险证据，不能归因于 Hydra 或本轮某一实例。
+
+这次是用户批准的 operator-run 压力观察，不是项目 helper activation；
+`system-helper-manifest.v1` 仍为默认空 allowlist，当前部署和 API `safe_instances` 均未
+因本轮结果改变。当前最终发布状态仍为 `verified_with_gap`。
+
+## Gate C multi-instance follow-up (2026-09-03)
+
+后续受控证据见 [`CP-20260903-gate-c-multi-followup.md`](checkpoints/CP-20260903-gate-c-multi-followup.md)。
+用户/外部 operator 已持有 `ticket_test_2`，因此本轮没有重启或停止它；在保留
+`ticket_test_1`/`ticket_test_2` 的情况下完成了 5 分钟双实例窗口和约 10 分钟恢复窗口。
+两个 ADB serial 全程 `device`、boot=1；双实例 qemu 工作集合约 7.00--8.35 GiB、Private
+约 7.48 GiB，commit 分别在 81.3--87.1% 的观察范围内。
+
+本轮只对独立 `ticket_test_3`（5558）做一次带保护的启动探测。它在约 19 秒内将宿主
+commit 推到 95.979%，尚未完成 Android boot，随后按 `adb -s emulator-5558 emu kill`
+精确退出；原两台仍在线。`ticket_test_4` 只有 `config.ini`，未作为实例尝试。该结果
+把当前 profile 本轮可验证的短时观察上限限定为“2 台”；第 3 台启动分配即触发保护，
+因此不能把 2 台写成安全容量或部署承诺，也不改变 `safe_instances`、`max_devices` 或
+provider 默认值。
+
+本轮还确认低资源 override 没有生效（仍 4096 MiB；GPU 只观察到软件 fallback/host
+backend 的混合证据），以及 WER `RADAR_PRE_LEAK_64` 事件早于 clone ramp、无 APPCRASH，
+不能归因 Hydra。项目最终状态仍为 `verified_with_gap`；下一步需低资源 profile 或更大
+宿主提交容量、15 分钟以上 soak、按进程 GPU/I/O 证据和用户决定的实例目录清理。
+
+### 双实例延长基线补充（2026-09-03）
+
+后续在保留两台用户实例的条件下完成了约 15 分钟量级的双实例只读资源窗口；聚合证据
+见 `CP-20260903-gate-c-baseline-15m.md` 和
+`.runtime/r2-avd-multi-20260903/two-baseline-15m-aggregate-20260903.json`。实际采样
+914.2 秒、墙钟跨度 1019.0 秒（含 104.9 秒分段间隔），两台全程 ADB `device`/boot=1；
+宿主 commit `81.446--83.260%`，qemu Private 合计 `7.478--7.480 GiB`。该结果只
+增强当前 profile 的双实例观察证据，不改变“尚未形成 safe capacity”的结论。

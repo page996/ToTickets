@@ -178,6 +178,16 @@ ADB server，已使用同一明确路径的 `adb kill-server` 关闭；最终无
 本 checkpoint 的策略/证据阶段已完成；真实 helper/AVD Gate C 保持 blocked，不能把
 `verified_with_gap` 解读为设备或真实平台验收通过。
 
+## Historical-count and acceleration clarification append (2026-09-03)
+
+本文件第 137--141 行的 API `19 suites/202 tests` 是 R1 前一时点的计数；同一文件第
+187--190 行已经记录 helper 测试增加后的当前 R1 复验结果，即 API `19 suites/203 tests`
+和 Console `9 files/81 tests`。前者保留作历史溯源，不应作为当前总数。
+
+同理，第 36--37 行的 `HypervisorPresent=False`/code 6 只描述 2026-09-02 预检时点。
+后续启动日志中的 WHPX operational 信号属于独立运行时复核，不能回填或覆盖该预检快照；
+两者共同构成待解释的时间点/UI 探测不一致。
+
 ## Result append: 2026-09-02T14:11:54Z (R1 revalidation)
 
 `result_status`: `verified_with_gap`
