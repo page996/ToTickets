@@ -228,3 +228,14 @@ provider-host 仍按本路线图的未完成门槛执行。
 同理，双实例约 15 分钟量级观察已经有独立 checkpoint；当前 profile 的下一步不是重复
 该窗口，而是先选择并验证真正生效的低 RAM/低图形 profile，或改用更大提交内存宿主机，
 然后再做固定时长 repeat/soak 与受保护 ramp。
+
+### 当前门槛索引（2026-09-03）
+
+- 已由代码/测试确认：API/Console 契约、隔离门禁、OpenAPI v1 基础覆盖和 mock 控制平面。
+- 已由人工/运行证据确认：空系统 AVD 单实例 smoke，以及当前有效 profile 的双实例约 15
+  分钟量级观察；第三实例保护停止规则已实际触发。
+- 待用户/平台确认：真正生效的低资源 profile 或更大宿主机、目标宿主机专用 preflight、
+  固定时长 repeat/soak、按进程 GPU/I/O 归因、mock APK test-only 模块和真实只读 provider。
+
+在上述选择完成前，不启动 `entity4`，不把双实例观察写成 `safe_instances=2`，也不激活
+真实 helper/provider。人工验收完成后仍按既定顺序进入 SQLite；系统通知策略最后单独讨论。
