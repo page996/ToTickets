@@ -131,6 +131,19 @@ function Test-IsSchemaIdentifierLine {
     return ($Line -match '(?i)\bschema\s*[:=]' -and $Line -match '(?i)https?://[^/]+/schemas?[/]')
 }
 
+function Test-IsHelperProvenanceUrlLine {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Line
+    )
+
+    $relative = Get-ProjectRelativePath -Path $Path
+    return (
+        $relative -match '(?i)^config/system-helper-manifest(?:\.v1)?\.json$' -and
+        $Line -match '^\s*"source_url"\s*:'
+    )
+}
+
 function Test-IsLoopbackBindPolicyConstantLine {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -192,6 +205,7 @@ function Test-HardcodedRuntimeValues {
             $isDependencyProvenance -or
             $isPackageManifest -or
             (Test-IsSchemaIdentifierLine -Line $line) -or
+            (Test-IsHelperProvenanceUrlLine -Path $File.FullName -Line $line) -or
             (Test-IsLoopbackBindPolicyConstantLine -Path $File.FullName -Line $line)
         ) {
             continue

@@ -1,6 +1,6 @@
 # 实施路线图
 
-## 当前状态（2026-09-01）
+## 当前状态（2026-09-02）
 
 已由仓库实现和测试确认：pnpm workspace 与隔离工具链、NestJS mock 控制平面、
 Tauri + React 控制台基线、内存 repository、`MockDeviceAdapter`、严格且仅允许
@@ -111,10 +111,14 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
 待完成：
 
 - 目标宿主机上的虚拟化后端、GPU/VRAM、目标 AVD 数据卷和网络/USB 带宽专用检查。
+- `system-helper-manifest.v1` 的实际目标宿主机条目、完整 provenance/hash、撤销记录和
+  provider-host activation port；当前仓库只有默认空 allowlist 与纯策略校验。
 - 将当前 mock-only 控制器扩展为真实 provider 的公开、版本化部署状态控制器，并补齐
   认证/TLS/RBAC/CSRF、provider 命令 allowlist、设备授权和跨进程 provider host 合约；
   在这些门槛完成前不启动 ADB、模拟器、scrcpy 或任何第三方应用。
 - Gate C 单实例人工观察及随后 2/4 实例 ramp test；测试结果才能替换估算 profile。
+- 当前仓库尚无可安装 mock APK；首个 Gate C 若先行，只能记录空系统 AVD smoke，不得把
+  它写成 mock App 状态机验收。
 
 详细规则见 `docs/13-host-preflight-and-deployment.md`。
 
@@ -128,10 +132,18 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
 
 本轮选型结论（2026-09-01）：以官方 Android Studio Emulator/AVD 作为 Gate C
 和 mock 设备的首选 provider，先做单实例只读 PoC；不把第三方闭源模拟器加入核心
-依赖。当前开发机已发现 Android Studio、SDK、ADB 和官方 Emulator，尚未创建 AVD，
-也未发现 scrcpy 或在线设备；虚拟化固件/SLAT 可用，但 Emulator hypervisor driver
-尚未安装。目标 Android API/系统镜像、宿主机虚拟化/GPU 和并发实例数仍需在目标
-环境实测并记录。宿主机检查与 profile 规则见 `docs/13-host-preflight-and-deployment.md`。
+依赖。9 月 1 日历史快照曾未发现 AVD；截至 9 月 2 日，当前开发机已发现用户创建的
+`ticket_test_1`（Android 37 Google APIs、`x86_64`、4 vCPU、2 GiB RAM、10 GiB data），
+但尚未启动。Android Emulator `37.1.11.0` 和 ADB `37.0.1` 可由显式路径读取，未发现
+scrcpy。固件虚拟化/SLAT 可用，但 `emulator -accel-check` 仍报告 hypervisor driver
+未安装，WHPX/Hyper-V 状态需管理员检查。目标宿主机 GPU、虚拟化和并发实例数仍必须
+实测并记录；详见 `docs/checkpoints/CP-20260902-host-preflight.md` 与
+`docs/13-host-preflight-and-deployment.md`。
+
+当前仓库没有可安装的 Android mock APK/Gradle mock App。加速驱动满足后，Gate C 首次
+验收只能限定为空系统 AVD 的冷启动、健康和只读画面 smoke；要验证 mock App 状态机，
+需先建立独立 test-only APK 模块及其模块书/checkpoint，不能把空系统 smoke 记作 mock
+App 验收。
 
 退出条件：Gate C 通过；人工验收确认系统不自动操作真实第三方 App。
 

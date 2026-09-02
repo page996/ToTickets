@@ -41,6 +41,7 @@
 | canonical ID | 源码边界/入口 | implementation | governance | checkpoint | 对外契约 | 测试证据 | 下一门槛 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `M12-deployment-state` | `apps/api/src/deployments` | active（仅 mock-only 实现；真实执行未启用） | partial | `CP-20260902-module-governance-baseline :: M12-extension` | `/api/v1/deployments*`、deployment state/events（版本化） | `deployment-service.spec.ts`、`deployment-api.spec.ts`、OpenAPI contract | 独立 provider-host、认证/TLS/RBAC；不得把本行视为真实部署授权 |
+| `M13-system-helper-policy` | `apps/api/src/helpers`、`config/system-helper-manifest*.json` | active（策略/校验；无 helper 启用） | partial | `CP-20260902-host-preflight :: M13` | `system-helper-manifest.v1`（版本化配置；当前空 allowlist） | `helper-manifest.spec.ts` | 目标宿主机 provenance/hash、R2 批准、provider-host 生命周期与资源隔离 |
 
 ## 已登记的示范模块书
 
@@ -48,6 +49,7 @@
 | --- | --- | --- | --- | --- |
 | `M11-host-readiness` | [`api-host-readiness.md`](api-host-readiness.md) | Host probe、内置 provider registry、容量规划、REST 边界及递归子模块清单 | implementation active；governance partial | `CP-20260902-module-governance-baseline :: M11` |
 | `CON-C3-control-plane-client` | [`console-control-plane-client.md`](console-control-plane-client.md) | Console REST transport、事件流、runtime boundary、refresh 协调及其子模块清单 | implementation active；governance partial | `CP-20260902-module-governance-baseline :: CON-C3` |
+| `M13-system-helper-policy` | [`system-helper-manifest.md`](system-helper-manifest.md) | 版本化 helper provenance/能力/路径/资源策略与默认拒绝校验 | implementation active；governance partial | `CP-20260902-host-preflight :: M13` |
 
 其余模块尚未拥有独立书页。此状态是治理缺口，不是实现失败；在逐模块书和 test-only
 harness 建立前，不能把索引中的 `active` 解读为“模块独立化已完成”。
@@ -119,15 +121,17 @@ WebSocket、Nest 组合和进程启动混成一个模块：
    只执行进程装配和生命周期。配置监听值仍必须来自严格配置层，不得在 `main.ts` 硬编码。
 5. `M11` 的 capacity snapshot 是 Host Planner 产生、M12 扩展消费的只读契约；当前
    controller 仍注入具体 `HostService`，这是待独立化的设计缺口，不是跨进程实现。
-6. Host/Deployment 契约未接入 Console UI；索引中的“契约”不等于“consumer 已实现”。
-7. 所有真实设备和系统 helper 连接都必须经过独立 R2 checkpoint、白名单和人工确认；本
+6. `M13-system-helper-policy` 只产生不可执行的 activation plan；它不拥有进程、设备或
+   数据库状态。任何 provider host 连接仍需通过 M13 白名单和独立 R2 闸门。
+7. Host/Deployment 契约未接入 Console UI；索引中的“契约”不等于“consumer 已实现”。
+8. 所有真实设备和系统 helper 连接都必须经过独立 R2 checkpoint、白名单和人工确认；本
    索引不授权启动任何外部进程。
 
 ## 本阶段结果
 
-本阶段已完成模块索引边界修正和两个示范模块书的第一版登记：原始 M1-M11、后续扩展
-M12、API Common/顶层支撑边界及 Console 递归边界均有 canonical ID 与 checkpoint 映射。
-仍保留递归书页、正式 test-only port、helper manifest、HostPlannerPort 和 phantom
-dependency 等治理缺口。checkpoint 的关闭只表示本阶段文档登记完成，不表示实现或真实
-provider 部署完成；下一 gate 仍是工具链/test-only 治理整改，并须另建 R2 记录处理设备、
-helper、依赖或外部网络动作。
+本阶段已完成模块索引边界修正和三个示范模块书的第一版登记：原始 M1-M11、后续扩展
+M12/M13、API Common/顶层支撑边界及 Console 递归边界均有 canonical ID 与 checkpoint
+映射。M13 的默认拒绝 parser/负向测试已验证，但仍保留递归书页、正式 HostPlannerPort、
+目标宿主机 preflight runner、provider-host 和 phantom dependency 等治理缺口。
+checkpoint 的关闭只表示策略/文档登记完成，不表示真实 provider 部署完成；下一 gate 仍须
+另建 R2 记录处理设备、helper、依赖或外部网络动作。

@@ -55,6 +55,46 @@ export function loadHost(): string {
   return configuredHost;
 }
 '@
+    Write-FixtureFile -RelativePath 'config/system-helper-manifest.v1.json' -Content @'
+{
+  "schema_version": "system-helper-manifest.v1",
+  "manifest_id": "fixture",
+  "entries": [
+    {
+      "helper_id": "fixture-helper",
+      "state": "proposed",
+      "purpose": "static provenance fixture",
+      "artifact": {
+        "path_ref": "env:FIXTURE_HELPER_PATH",
+        "version": "1",
+        "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_url": "https://docs.example.invalid/provenance",
+        "license": "MIT",
+        "maintenance": "unknown"
+      },
+      "approval": { "approved_by": null, "approved_at_utc": null },
+      "capabilities": {
+        "allow": ["version_read"],
+        "deny": ["device_input", "ui_automation", "credential_access", "transaction_automation", "private_api", "network_external", "risk_control_evasion", "apk_install", "data_export"]
+      },
+      "invocation": {
+        "allowed_operations": ["version"],
+        "allowed_environment_keys": ["FIXTURE_HELPER_PATH"],
+        "working_directory": "none",
+        "network_access": "none",
+        "max_runtime_ms": 1000,
+        "max_output_bytes": 1024,
+        "max_child_processes": 0
+      },
+      "data_policy": { "read_scopes": [], "write_scopes": [], "sensitive_data": "deny" },
+      "resource_limits": { "cpu_seconds": 1, "memory_mib": 16, "disk_mib": 0 },
+      "lifecycle": { "start": "manual_approval", "health": "bounded_probe", "stop": "graceful_then_force", "crash_recovery": "disabled_until_review" },
+      "audit": { "event_type": "system-helper.invocation.v1", "checkpoint_id": "CP-20260902-fixture" },
+      "revocation": { "action": "mark_revoked", "owner": "fixture" }
+    }
+  ]
+}
+'@
 
     $clean = Invoke-FixtureCheck
     Assert-True -Condition ($clean.ExitCode -eq 0) -Message "Expected clean fixture to pass.`n$($clean.Output)"

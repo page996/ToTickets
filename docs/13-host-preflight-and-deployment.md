@@ -78,6 +78,14 @@ GPU/VRAM 或磁盘无法被无副作用探针确认时，不把容量错误地�
 画面新鲜度、丢帧、CPU/内存/显存/磁盘 IO、温度、崩溃和恢复时间。只有通过测试的
 数量才能写入部署配置；当前 profile 的数字不能当作并发或购票成功率保证。
 
+2026-09-02 本机按 `android-emulator-avd` 规划 profile（4 threads、4096 MiB、16 GiB
+data、1024 MiB VRAM）估算 CPU/内存/磁盘上限约为 `7/3/15`，因此保守
+`safe_instances=3`、`startup_concurrency=2`；GPU 未由项目无副作用 probe 确认，
+`confidence=unknown`。用户实际 `ticket_test_1` 配置为 2 GiB RAM、10 GiB data 且关闭
+GPU，和规划 profile 不一致，不能直接使用上述数字。部署建议先按规划 profile 预留每实例
+4 threads、4 GiB RAM、16 GiB data、1 GiB VRAM及主机 20 GiB 余量；若保留当前 AVD 配置，
+先登记独立 profile，再以单实例和 `1 -> 2 -> 4` 实测替换估算。
+
 ## 5. 部署状态控制（mock-only domain）
 
 当前 `apps/api/src/deployments/`（决策记录见
@@ -160,7 +168,7 @@ provider adapter 和跨进程恢复仍需单独版本化和验收。
 未来 `authenticated-tls.v1` 只在认证、TLS、RBAC、CSRF 和 WebSocket 握手认证全部
 就绪并完成负向测试后才能切换。详见 `docs/adr/0003-exposure-profile-boundary.md`。
 
-## 6. 本轮宿主机证据
+## 6. 历史宿主机证据（2026-09-01）
 
 证据来自 2026-09-01 的只读检查和用户安装截图，不能外推到其他主机：
 
@@ -175,10 +183,46 @@ provider adapter 和跨进程恢复仍需单独版本化和验收。
 - 本轮未运行 `adb devices`，也未启动 ADB server；没有启动模拟器或安装 APK。工具状态仅
   由显式选择的工具路径检查和静态版本信息获得。
 
-因此下一步 Gate C 是：用户在目标宿主机选择系统镜像和 AVD，完成虚拟化/GPU 检查，
-由人工启动单实例并观察 mock App；通过后再做 2、4 实例 ramp test。真实大麦 APK
-兼容性、包体完整性和环境监测只能以用户合法取得的 APK/实机人工验收为准，不能用
-静态代码或串流供应商宣传替代。部署 domain 的单元/负向测试
+上述内容是 2026-09-01 的历史快照；当前宿主机事实和 Gate C 限制见下一节。历史快照中的
+AVD 为空不应覆盖后续创建的 AVD。真实大麦 APK 兼容性、包体完整性和环境监测只能以
+用户合法取得的 APK/实机人工验收为准，不能用静态代码或串流供应商宣传替代。部署 domain 的单元/负向测试
 （`apps/api/test/deployment-service.spec.ts`）与 REST/OpenAPI 契约测试
 （`apps/api/test/openapi-contract.spec.ts`）只验证上述 mock 状态、容量、generation、幂等、
 审计和事件边界；测试通过不等于 Gate C 通过，也不授权启动任何外部实例。
+
+## 7. 当前宿主机快照（2026-09-02）
+
+本节来自 `docs/checkpoints/CP-20260902-host-preflight.md` 的只读检查，面向本机事实，
+不能外推到其他部署环境：
+
+- 已发现 AVD `ticket_test_1`，数据目录由用户选择在 E 盘；Android 37 Google APIs、
+  `x86_64`、`medium_phone`，配置为 4 vCPU、2 GiB RAM、10 GiB data partition、512 MiB SD，
+  `hw.gpu.enabled=no`。`avdmanager list avd` 返回成功。
+- Android Emulator 版本为 `37.1.11.0`（build `15917651`），ADB 为 `37.0.1-15733141`；
+  工具路径、完整 SHA-256 和许可证只能在目标宿主机的批准 manifest 中记录，本文件不把
+  本机路径写入运行时配置。
+- 主机为 AMD Ryzen 9 7945HX、32 逻辑线程、约 31.22 GiB 内存；检查时 C/E 盘可用约
+  76.99/261.24 GiB；NVIDIA RTX 5080 Laptop `nvidia-smi` 报告总显存 16303 MiB、可用
+  14239 MiB。GPU 结果仍需在启用 GPU 的 AVD profile 下复测。
+- 固件虚拟化、SLAT 和 VM monitor extensions 为 true；`HypervisorPresent=False`，
+  Windows 可选功能因当前权限不足未确认；`emulator -accel-check` 返回 code 6，提示
+  Android Emulator hypervisor driver 未安装。因此当前 Gate C 为 `blocked_pending_acceleration`，
+  不能启动并发实例。
+- 预检结束时无 emulator、ADB server 或 5037 listener。一次版本检查期间误调用
+  `adb devices` 曾短暂启动 ADB server，已用 `adb kill-server` 清理并记录在 checkpoint；
+  后续预检禁止该命令。
+
+当前仓库没有可安装的 mock APK/Gradle mock App（M8 仍为 planned）。因此加速驱动和权限
+满足后，首个 Gate C 只能先做空系统 AVD 的冷启动、健康和只读画面 smoke；若要验证 mock
+App 状态机，必须另建独立 test-only mock APK 模块、模块书和 checkpoint。真实大麦 APK
+仍只由用户合法取得后人工安装、登录和验收。
+
+## 8. Helper 白名单门槛
+
+`config/system-helper-manifest.v1.json` 当前为 `entries=[]`，仅表示默认拒绝；策略 schema
+和纯校验入口见 `config/system-helper-manifest.schema.json`、
+`apps/api/src/helpers/helper-manifest.ts`。ADB、emulator、scrcpy 不能因为已安装就自动
+进入项目。正式条目必须记录精确版本、完整 hash、来源/许可证、显式路径引用、允许操作和
+环境、无网络/无写入数据策略、资源上限、生命周期、审计 checkpoint 与撤销方式，并在
+单独 R2 checkpoint 和人工确认后才可交给未来 provider-host。当前 helper 校验只生成
+`execution=not_performed` plan，不执行任何命令。

@@ -1,0 +1,272 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/system-helper-manifest.v1.json",
+  "title": "SystemHelperManifestV1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "manifest_id", "entries"],
+  "properties": {
+    "schema_version": { "const": "system-helper-manifest.v1" },
+    "manifest_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+    },
+    "entries": {
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/entry" }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "helper_id",
+        "state",
+        "purpose",
+        "artifact",
+        "approval",
+        "capabilities",
+        "invocation",
+        "data_policy",
+        "resource_limits",
+        "lifecycle",
+        "audit",
+        "revocation"
+      ],
+      "properties": {
+        "helper_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+        },
+        "state": { "type": "string", "enum": ["proposed", "approved", "revoked"] },
+        "purpose": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "artifact": { "$ref": "#/$defs/artifact" },
+        "approval": { "$ref": "#/$defs/approval" },
+        "capabilities": { "$ref": "#/$defs/capabilities" },
+        "invocation": { "$ref": "#/$defs/invocation" },
+        "data_policy": { "$ref": "#/$defs/data_policy" },
+        "resource_limits": { "$ref": "#/$defs/resource_limits" },
+        "lifecycle": { "$ref": "#/$defs/lifecycle" },
+        "audit": { "$ref": "#/$defs/audit" },
+        "revocation": { "$ref": "#/$defs/revocation" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "approved" } } },
+          "then": {
+            "properties": {
+              "approval": {
+                "required": ["approved_by", "approved_at_utc"],
+                "properties": {
+                  "approved_by": { "type": "string", "minLength": 1 },
+                  "approved_at_utc": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path_ref", "version", "sha256", "source_url", "license", "maintenance"],
+      "properties": {
+        "path_ref": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 96,
+          "pattern": "^(env|project|selection):[A-Z][A-Z0-9_]{1,63}$"
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}$"
+        },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "source_url": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https:[/][/][^\\s]+$"
+        },
+        "license": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "maintenance": {
+          "type": "string",
+          "enum": ["active", "security_supported", "unknown"]
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approved_by", "approved_at_utc"],
+      "properties": {
+        "approved_by": {
+          "type": ["string", "null"],
+          "maxLength": 128
+        },
+        "approved_at_utc": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allow", "deny"],
+      "properties": {
+        "allow": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "version_read",
+              "metadata_read",
+              "health_read",
+              "lifecycle_control",
+              "screen_observation",
+              "device_discovery_read"
+            ]
+          }
+        },
+        "deny": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 9,
+          "items": {
+            "type": "string",
+            "enum": [
+              "device_input",
+              "ui_automation",
+              "credential_access",
+              "transaction_automation",
+              "private_api",
+              "network_external",
+              "risk_control_evasion",
+              "apk_install",
+              "data_export"
+            ]
+          }
+        }
+      }
+    },
+    "invocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowed_operations",
+        "allowed_environment_keys",
+        "working_directory",
+        "network_access",
+        "max_runtime_ms",
+        "max_output_bytes",
+        "max_child_processes"
+      ],
+      "properties": {
+        "allowed_operations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+          }
+        },
+        "allowed_environment_keys": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+          }
+        },
+        "working_directory": {
+          "type": "string",
+          "enum": ["none", "project_relative", "selected_path_parent"]
+        },
+        "network_access": { "const": "none" },
+        "max_runtime_ms": { "type": "integer", "minimum": 100, "maximum": 600000 },
+        "max_output_bytes": { "type": "integer", "minimum": 1024, "maximum": 1048576 },
+        "max_child_processes": { "type": "integer", "minimum": 0, "maximum": 8 }
+      }
+    },
+    "data_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_scopes", "write_scopes", "sensitive_data"],
+      "properties": {
+        "read_scopes": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^(project|selection):(?!.{0,128}\\.\\.)[A-Za-z0-9._/-]{1,120}$"
+          }
+        },
+        "write_scopes": {
+          "type": "array",
+          "maxItems": 0,
+          "items": { "type": "string" }
+        },
+        "sensitive_data": { "const": "deny" }
+      }
+    },
+    "resource_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpu_seconds", "memory_mib", "disk_mib"],
+      "properties": {
+        "cpu_seconds": { "type": "integer", "minimum": 1, "maximum": 3600 },
+        "memory_mib": { "type": "integer", "minimum": 16, "maximum": 16384 },
+        "disk_mib": { "type": "integer", "minimum": 0, "maximum": 1048576 }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "health", "stop", "crash_recovery"],
+      "properties": {
+        "start": { "const": "manual_approval" },
+        "health": { "const": "bounded_probe" },
+        "stop": { "const": "graceful_then_force" },
+        "crash_recovery": { "const": "disabled_until_review" }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_type", "checkpoint_id"],
+      "properties": {
+        "event_type": { "const": "system-helper.invocation.v1" },
+        "checkpoint_id": {
+          "type": "string",
+          "pattern": "^CP-[0-9]{8}-[a-z0-9][a-z0-9-]{1,80}$"
+        }
+      }
+    },
+    "revocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "owner"],
+      "properties": {
+        "action": { "type": "string", "enum": ["mark_revoked", "remove_entry"] },
+        "owner": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    }
+  }
+}

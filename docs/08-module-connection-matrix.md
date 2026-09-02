@@ -14,9 +14,12 @@
 | Control Plane | Audit Service | `AuditEvent` | append-only 审计 |
 | Mock Harness | Contract Tests | fixture/adapter port | 仅测试环境可自动化 |
 | Host Probe/Planner | Console/Operator | `host-probe.v1` / `provider-manifest.v1` over REST | 只读资源检查与容量估算 |
+| System Helper Policy | Provider Host (future) | `system-helper-manifest.v1` + non-executable activation plan | 当前只做校验；approved helper 仍需 R2/人工确认 |
 | Deployment Controller (mock-only) | Control Plane / Provider Host (future) | versioned deployment state/events | 当前只改进程内 mock 状态；真实 provider 逐实例、幂等、需人工确认且未启用 |
 
 任何模块不得绕过 Control Plane 直接调用 Adapter Host。UI 也不能直接调用 ADB、scrcpy 或模拟器 CLI。
+System Helper Policy 只验证版本化 manifest 并生成 `execution=not_performed` 计划，不启动
+系统进程；未来 provider host 必须校验完整 hash、路径引用、能力和资源限制。
 
 Host Probe 只使用操作系统资源 API 和用户明确选择的工具路径；它不通过 PATH、注册表
 或猜测目录发现工具，不启动外部进程。容量规划结果不能直接触发部署。当前 mock-only

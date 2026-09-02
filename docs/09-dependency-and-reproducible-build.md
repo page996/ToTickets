@@ -6,6 +6,11 @@
 
 Android SDK Platform-Tools/ADB、scrcpy、模拟器和 Windows 构建组件属于外部 provider/系统前置项，不得因开发机上已经存在就视为项目依赖。引入前必须有可配置发现器、版本和来源记录、许可证/EULA 评估、hash/provenance 以及只读能力验收。
 
+外部 helper 的准入策略由 `config/system-helper-manifest.schema.json` 与默认空 allowlist
+`config/system-helper-manifest.v1.json` 管理。当前 manifest 不把 Android SDK 工具打包为项目
+依赖，也不使其进入 SBOM；只有未来交付物实际封装某个 helper 时，才同步更新依赖目录、
+许可证 notice、SBOM/provenance 和安装回滚说明。系统已安装且 hash 可读不等于已批准。
+
 ## 2. 当前冻结清单
 
 | 层 | 声明与锁定文件 | 当前状态 |

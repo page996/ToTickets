@@ -3,7 +3,7 @@
 **module_id**：`M11-host-readiness`（canonical；旧别名 `api.host-readiness` 仅用于迁移）
 **版本**：`host-readiness.v1`
 **implementation**：`active`（只读 planning 已由代码/测试确认）
-**governance**：`partial`（本书是第一版示范，独立 port、helper manifest 和递归书页尚未闭合）
+**governance**：`partial`（本书是第一版示范，HostPlannerPort、专用 preflight runner 和递归书页尚未闭合；helper policy 已独立登记）
 **负责人边界**：API Host Planning owner（当前由 `apps/api/src/hosts` 负责；未指定个人责任人）
 **父模块**：M11-host-readiness
 **源码边界**：`apps/api/src/hosts/*`、`apps/api/src/config/*` 的配置消费边界、
@@ -146,11 +146,12 @@ fixture；它们直接 import 生产函数，尚未封装为正式版本化 `tes
 
 ## 7. Helper、连接门槛与人工验收
 
-当前仓库**尚未登记**可执行的 `system-helper-manifest.v1` 条目；`toolCheck` 仅做
-`statSync().isFile()` 存在性检查，不验证可执行权限、版本、hash、许可证、参数/环境或资源
-上限。因此任何 ADB、emulator、scrcpy 或其他 helper 连接都必须先通过独立 helper manifest
-checkpoint；未登记、路径/版本/hash 不匹配时 fail closed，并记录启动、健康、停止、崩溃恢复、
-审计和回滚方式。HostService 本身不得绕过该门槛。
+仓库现已登记 `system-helper-manifest.v1` 的严格 schema 和默认空 allowlist；当前没有任何
+可执行 helper 条目。`toolCheck` 仍仅做 `statSync().isFile()` 存在性检查，不验证可执行权限、
+版本、hash、许可证、参数/环境或资源上限，因此它不能替代
+`M13-system-helper-policy` 的 parser。任何 ADB、emulator、scrcpy 或其他 helper 连接都
+必须先通过独立 helper manifest checkpoint；未登记、路径/版本/hash 不匹配时 fail closed，
+并记录启动、健康、停止、崩溃恢复、审计和回滚方式。HostService 本身不得绕过该门槛。
 
 进入真实 AVD/USB/远程串流前必须依次通过：
 
@@ -159,8 +160,9 @@ checkpoint；未登记、路径/版本/hash 不匹配时 fail closed，并记录
 3. 单实例人工观察和审计；
 4. 按 `1 → 2 → 4` 递增的 ramp test，只有实测结果才能替换规划 profile。
 
-当前用户提供的 `ticket_test_1`/AVD 资料属于宿主机输入快照，不是本模块部署授权或兼容性
-结论。真实大麦操作始终由用户人工完成；不进行包体/环境检测规避或私有接口调用。
+当前用户提供的 `ticket_test_1`/AVD 资料及 2026-09-02 预检属于宿主机输入快照，不是本
+模块部署授权或兼容性结论。当前仓库没有 mock APK，因此首个 Gate C 只能是空系统 AVD
+smoke；真实大麦操作始终由用户人工完成，不进行包体/环境检测规避或私有接口调用。
 
 ## 8. 结论分类与 checkpoint
 
@@ -174,6 +176,17 @@ checkpoint；未登记、路径/版本/hash 不匹配时 fail closed，并记录
 后续任何 helper、provider、容量公式或 schema 改动必须创建新的 checkpoint，记录输入快照、
 证据和回滚方式。回滚是恢复到最近已验证 checkpoint 的文档/提交状态，不删除测试证据。
 
-待办：建立 `HostPlannerPort` 和版本化输入 DTO；登记并验证 `system-helper-manifest.v1`；
-补齐目标宿主机 GPU/虚拟化 probe；为纯函数和 service 建立正式 test-only port；为递归子模块
-建立书页；在不覆盖 `docs/12`/`docs/13` 历史内容的前提下追加新的 2026-09-02 host snapshot。
+## 9. 2026-09-02 宿主机快照
+
+当前只读快照登记在 `docs/checkpoints/CP-20260902-host-preflight.md`：发现
+`ticket_test_1`（Android 37 Google APIs、`x86_64`，4 vCPU、2 GiB RAM、10 GiB data，GPU
+关闭），主机 32 线程/约 31.22 GiB RAM/E 盘约 261 GiB 可用；固件虚拟化和 SLAT 可用，
+但 hypervisor driver 检查失败且 Windows 可选功能需管理员权限。该快照不构成容量或
+兼容性承诺，也不授权启动 AVD。仓库当前没有 mock APK，Gate C 的首个 smoke 范围需另行
+记录。
+
+待办：建立 `HostPlannerPort` 和版本化输入 DTO；实现目标宿主机 GPU/虚拟化 preflight
+runner；为纯函数和 service 建立正式 test-only port；为递归子模块建立书页；在不覆盖
+`docs/12`/`docs/13` 历史内容的前提下持续追加 host snapshot。helper manifest 的策略和
+负向测试已由 `docs/modules/system-helper-manifest.md` 与
+`apps/api/test/helper-manifest.spec.ts` 登记，实际 helper 条目仍待 R2 批准。

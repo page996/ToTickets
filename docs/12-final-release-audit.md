@@ -130,3 +130,27 @@ GPU/虚拟化未覆盖项标为 `unknown`；容量 profile 必须在目标宿主
 - 当前尚未完成 Tauri 原生窗口人工验收、SQLite 持久化、真实只读 Android adapter 和发布签名/安装包。
 - 当前尚未完成真实 provider 的部署状态控制、目标宿主机专用 GPU/虚拟化/网络检查和
   Gate C；HostProbe 只提供 planning/readiness，不会自行启动外部实例。
+
+## 后续宿主机事实（2026-09-02）
+
+本文件前述模拟器段落是 2026-09-01 的发布审计快照，保留其原始结论；后续只读检查已
+发现用户创建的 AVD `ticket_test_1`（Android 37 Google APIs、`x86_64`、4 vCPU、2 GiB
+RAM、10 GiB data、E 盘数据目录）。这不改变本审计的发布状态：AVD 尚未启动，hypervisor
+driver 未安装，GPU/虚拟化/并发和真实 APK 兼容性仍未验收。完整当前证据见
+`docs/checkpoints/CP-20260902-host-preflight.md`；`system-helper-manifest.v1` 当前
+为默认空 allowlist，不能因工具已安装而自动启动 helper。
+
+## R1 策略与构建复验补充（2026-09-02）
+
+本节只补充当前工作树的 helper 策略和离线构建证据；前文浏览器/视觉回归和 2026-09-01
+测试数字仍按其历史时间点解释，本节没有重新生成浏览器截图或声称 Tauri 原生窗口人工验收。
+
+- helper manifest 定向测试 20/20；workspace 测试 API 19 suites/203 tests、Console 9
+  files/81 tests；typecheck、Nest/Vite build、mock load self-test、静态合规、SBOM 和
+  Rust fmt/check/clippy 均通过。
+- `scripts/tauri.ps1 build --no-bundle` 在注入 loopback 配置后通过；当前 release
+  executable SHA-256 为
+  `B80C0BC65048E5B4E7CF3BF67D2A80D99C31BE48D15F30A1D59AE53FE1CB7EAD`。这是本次构建的
+  时间点哈希，不覆盖前文历史哈希，也不构成 bit-for-bit 可复现承诺。
+- 第一次 Tauri 调用因未注入 `CONSOLE_API_BASE_URL`/`CONSOLE_EVENTS_URL` 按设计拒绝，
+  补齐后重跑成功；全程未启动 AVD、ADB、API、Vite、Tauri 窗口或真实平台进程。

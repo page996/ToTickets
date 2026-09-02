@@ -118,7 +118,7 @@ ID、响应字段和枚举在边界处严格校验。`write()` 在调用方未�
 
 历史验证证据（2026-09-01，旧阶段）：
 
-- `docs/12-final-release-audit.md` 记录项目 wrapper 下 API 18 suites/183 tests、Console 9 files/81 tests、typecheck/build、load self-test、合规/SBOM/Rust/Tauri 和 loopback 浏览器回归；Console 的 9 个文件包括 `apps/console/scripts/tauri-config-overlay.spec.mjs`，不应误写成全部位于 `src`；
+- `docs/12-final-release-audit.md` 记录 2026-09-01 历史阶段的 API 18 suites/183 tests、Console 9 files/81 tests、typecheck/build、load self-test、合规/SBOM/Rust/Tauri 和 loopback 浏览器回归；本阶段新增 M13 后 API 当前为 19 suites/203 tests（详见 host-preflight checkpoint），Console 仍为 9 files/81 tests。Console 的 9 个文件包括 `apps/console/scripts/tauri-config-overlay.spec.mjs`，不应误写成全部位于 `src`；
 - 当前可见的 Console `src` 测试由 `api-client.spec.ts`、`event-stream.spec.ts`、`runtime-config.spec.ts`、`single-flight-refresh.spec.ts`、hook/component specs 等组成；overlay spec 由脚本测试入口单独执行；
 - 旧阶段只读校验命令为 `git diff --check` 与模块文档字段/路径扫描，未启动 API/Vite/Tauri/AVD/ADB，也未执行外部网络动作。
 
