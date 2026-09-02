@@ -69,3 +69,13 @@ git ls-remote origin refs/heads/main
 用户选择“当前宿主机的真正生效低 RAM/低图形 profile”或“更大物理/提交内存宿主机”后，
 再建立独立模块书和 checkpoint，执行目标宿主机 preflight、单实例 repeat/soak、GPU/I/O
 观测及受保护 ramp。Tauri 原生窗口人工验收仍优先于 SQLite；系统通知策略最后另行讨论。
+
+## Result append: 2026-09-02T19:42:52Z
+
+- `git diff --check` 通过；`scripts/check-compliance.ps1` 通过（0 violations）。
+- 本阶段提交已在本地创建：`6a0f9aa862378039fa67c2cbac0be68f90036289`。
+- 向 `origin/main` 的三次推送尝试（普通 HTTPS 两次，随后显式 HTTP/1.1 一次）均因到
+  `github.com:443` 的连接重置/连接失败而退出；没有修改 remote URL 或执行 force push。
+- 远程在线引用最后成功核验仍为前一 SHA `64b7b1700d5fc8d8d685f9291792f20160a69a12`；
+  当前本地状态为 `main...origin/main [ahead 1]`，工作树干净。网络恢复后应只执行
+  `git push origin main`，再用 `git ls-remote origin refs/heads/main` 核对新 SHA。
