@@ -215,3 +215,16 @@ host；该结果只更新 Gate C 的压力证据，不更新 `safe_instances` �
 含明确记录的分段间隔）；两台健康、commit `81.446--83.260%`。这只关闭了当前 profile
 的一项短时资源观察，不改变低资源 profile、GPU/I/O 归因、目标宿主机复测、mock APK
 和真实 provider 的未完成状态。
+
+### 2026-09-03 文档状态更正
+
+前述路线图中的 OpenAPI “待完成”描述只适用于当时的未覆盖范围。当前
+`docs/openapi.v1.json` 已覆盖现有装饰路由的请求、成功响应和错误 envelope，且
+`apps/api/test/openapi-contract.spec.ts` 已纳入每个路由的契约检查；因此 OpenAPI v1
+基础契约状态为“已由代码/测试确认”，后续只需随 schema 变更持续维护。完整发布仍不等于
+OpenAPI 完成：认证/TLS/RBAC/CSRF、SQLite、真实只读 adapter、Tauri 原生验收和正式
+provider-host 仍按本路线图的未完成门槛执行。
+
+同理，双实例约 15 分钟量级观察已经有独立 checkpoint；当前 profile 的下一步不是重复
+该窗口，而是先选择并验证真正生效的低 RAM/低图形 profile，或改用更大提交内存宿主机，
+然后再做固定时长 repeat/soak 与受保护 ramp。

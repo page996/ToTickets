@@ -265,3 +265,12 @@ capacity”。单实例/目录低于或约 10 GiB 的说法不能替代工作集
 ADB/boot/唤醒状态全程正常，宿主 commit `81.446--83.260%`。该窗口仅作为目标宿主机
 的观测输入，不能把当前实例数写入 `safe_instances`，也不能替代低资源 profile、GPU/I/O
 和人工 provider 验收。
+
+## 11. 当前运行时状态索引（2026-09-03）
+
+第 7 节中的 `blocked_pending_acceleration` 仅表示 2026-09-02 预检时点，不能覆盖后续
+运行事实。后续只读执行的 `emulator -accel-check` 返回 WHPX 可用（code 0），并且现存
+`ticket_test_1`/`ticket_test_2` 均为 `device`、boot 完成；这些结果仍只是宿主机观察，不
+激活 helper/provider。当前 Gate C 综合状态为 `verified_with_gap`：双实例有约 15 分钟量级
+观察，第三实例在 Android boot 前触发 commit 保护；低资源覆盖、目标宿主机复测、GPU/I/O
+归因、真实 APK 和人工 provider 验收仍未完成。历史预检段落保留不变，避免混淆不同时间点。
