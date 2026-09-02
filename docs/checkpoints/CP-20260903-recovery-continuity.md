@@ -25,7 +25,7 @@ helper allowlist，不启动/停止/重启任何 AVD 或项目服务，不删除
 ## Files, dependencies, processes and devices
 
 - Git：复核开始前 `main` 与本地 `origin/main` 跟踪引用相同（`7e10741`），工作树干净；本
-  checkpoint 是本次唯一新增的 tracked 文档，未修改其他 tracked 或 ignored 文件。
+  checkpoint 与三份文档澄清构成本次 tracked 变更，未修改源码、依赖或 ignored 运行产物。
 - 当前在线设备（用户持有，禁止自动处置）：
   - `ticket_test_1` / `emulator-5554`：emulator PID `17760`，qemu PID `2904`。
   - `ticket_test_2` / `emulator-5556`：emulator PID `35324`，qemu PID `1848`。
@@ -97,3 +97,13 @@ operator-run 必须保存新增证据，并只按记录的 serial、命令行和
 在选择前，项目可继续进行不触碰设备的文档/测试准备和用户人工验收；不启动 `entity4`，不
    自动清理 `entity3` stale lock，不把当前资源快照写成部署容量。人工验收通过后按既定顺序进入
 SQLite 持久化，系统通知策略最后另行讨论。
+
+## Result append: 2026-09-03 local
+
+- 文档更正提交为 `80871bd`（恢复连续性/当前门槛）和 `6aa7e17`（模块书路径与枚举事实）。
+- `git diff --check`、静态合规检查和合规自测均通过；未重新运行全量构建，因为本轮没有源码
+  或依赖变更，既有 R1 证据仍按原 checkpoint 引用。
+- 第一次、第二次 `git push` 因到 `github.com:443` 的瞬时连接失败；网络恢复后重试成功。
+  `git fetch origin main` 与 `git ls-remote origin refs/heads/main` 均确认远程 `main` 为
+  `6aa7e17bffb91ad1d04e66f6a5986ce4adeed796`，本地工作树干净。
+- 推送期间及之后复核确认 `ticket_test_1`/`ticket_test_2`、ADB server 和活动锁未被触碰。
