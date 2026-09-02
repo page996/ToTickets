@@ -2,7 +2,7 @@
 
 **module_id**：`CON-C3-control-plane-client`（canonical；旧别名 `console.control-plane-client` 仅用于迁移）
 **版本**：`console-control-plane-client.v1`
-**implementation**：`active`（loopback 浏览器回归和单元/契约测试有历史证据）
+**implementation**：`active`（loopback 浏览器受控复验通过；正式项目内浏览器入口仍有 gap）
 **governance**：`partial`（本书聚合多个递归边界，正式 test-only harness 和独立书页尚未闭合）
 **负责人边界**：Console transport/config owner；`CON-C6-ui-features` 只消费本模块端口，不拥有 transport 状态
 **父模块**：M9-console-contract-ui
@@ -116,15 +116,23 @@ ID、响应字段和枚举在边界处严格校验。`write()` 在调用方未�
 - `parseRuntimeConfig`、`isLoopbackHostname` 和依赖计算函数用于 `runtime-config.spec.ts`/`vite-boundary.spec.ts`；
 - hook/component specs 使用合成 API 响应、时钟和 UI 事件，不连接真实账号或设备。
 
-历史验证证据（2026-09-01，当前文档阶段未重新启动服务或浏览器）：
+历史验证证据（2026-09-01，旧阶段）：
 
 - `docs/12-final-release-audit.md` 记录项目 wrapper 下 API 18 suites/183 tests、Console 9 files/81 tests、typecheck/build、load self-test、合规/SBOM/Rust/Tauri 和 loopback 浏览器回归；Console 的 9 个文件包括 `apps/console/scripts/tauri-config-overlay.spec.mjs`，不应误写成全部位于 `src`；
 - 当前可见的 Console `src` 测试由 `api-client.spec.ts`、`event-stream.spec.ts`、`runtime-config.spec.ts`、`single-flight-refresh.spec.ts`、hook/component specs 等组成；overlay spec 由脚本测试入口单独执行；
-- 本轮只读校验命令为 `git diff --check` 与模块文档字段/路径扫描，未启动 API/Vite/Tauri/AVD/ADB，也未执行外部网络动作。
+- 旧阶段只读校验命令为 `git diff --check` 与模块文档字段/路径扫描，未启动 API/Vite/Tauri/AVD/ADB，也未执行外部网络动作。
+
+本轮 R2 受控复验（2026-09-02）见 [`CP-20260902-loopback-browser-regression`](../checkpoints/CP-20260902-loopback-browser-regression.md)：
+API `59235`、Vite `59236` 使用动态 loopback 端口，1440px/390px 四视图、合法/非法
+Origin、停机/重启恢复均通过，截图和日志保存在被忽略的 `.runtime` 目录。浏览器 runner
+来自显式注入的 Codex 隔离 Playwright runtime 与宿主机 Edge，未进入项目 manifest/lock/SBOM；
+因此这是一份 `verified_with_gap` 的 host-assisted 证据，不能替代干净 checkout 的正式
+test-only 入口。
 
 持续负向测试和审计断言必须覆盖：非法/非 loopback endpoint、凭据/query/fragment、未知 wire
 字段、错误 envelope、序列回退/缺口、慢连接/Abort、重复刷新和服务重启后的重新同步；当前
-慢连接、真实 Abort 和跨进程恢复仍是治理缺口，不能从历史浏览器回归推断已完成。
+慢连接、真实 Abort、正式浏览器入口和跨进程恢复仍是治理缺口，不能仅从 host-assisted
+浏览器回归推断已完成。
 
 ## 7. Helper 边界、连接门槛与人工验收
 

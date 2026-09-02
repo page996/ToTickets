@@ -15,6 +15,12 @@ mock-only 状态控制基线：`desired_state`/`observed_state`、`generation`�
 浏览器回归已完成并记录在 `docs/12-final-release-audit.md`。这只证明 mock-first
 控制平面的当前验收范围，不等于真实设备或发布级远程部署验收。
 
+恢复接管后于 2026-09-02 重新执行了一轮动态 loopback API/Vite/浏览器回归，结果和清理
+证据记录在 `docs/checkpoints/CP-20260902-loopback-browser-regression.md`。该轮为
+host-assisted `verified_with_gap`：页面、REST/WS、Origin 拒绝和 API 重启恢复均通过，
+但仓库尚未锁定或提供可在干净 checkout 复现的浏览器 test-only harness；这项缺口不改变
+当前只允许 loopback 的安全边界。
+
 已完成本轮：OpenAPI v1 请求/响应契约及装饰路由契约测试、离线测试/构建/合规/
 SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origin 验证、API
 重启后的控制台 WebSocket 重连验证、宿主机只读探针与 provider 容量规划接口，以及
@@ -48,7 +54,8 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
 待完成：
 
 - 用持久化 SQLite repository 替换当前有界内存 repository（包括部署记录），并完成迁移、恢复和保留策略验证。
-- 继续补齐其他 REST schema 细节、审计哈希链和发布级验收证据。
+- 继续补齐非核心/边缘 REST schema 细节、审计哈希链和发布级验收证据；OpenAPI v1 已覆盖
+  当前装饰路由的请求/成功响应/错误 envelope，后续 schema 变更仍须持续契约测试。
 - 持续维护部署事件的版本化 REST/WS payload schema，并将当前 mock REST 控制器的错误/审计
   语义纳入持续契约测试；在认证、授权、CSRF、provider host allowlist 和人工确认闸门
   完成前，不把状态控制器接入真实进程。
@@ -77,8 +84,9 @@ SBOM/Rust/Tauri 门禁、桌面与 390px 浏览器回归、合法与非法 Origi
 
 退出条件：`docs/10-concurrency-and-operability.md` 中的验收指标持续有可复现实测记录；健康探针在负载期间持续可用；所有新增配置和指标均有 schema、契约测试和依赖记录；未扩大到真实平台或设备输入能力。
 
-当前证据：mock 负载自测和 API 并发/事件流/重启恢复测试已通过；本轮完整命令、计数和
-浏览器故障注入结果见 `docs/12-final-release-audit.md`。
+当前证据：mock 负载自测和 API 并发/事件流/重启恢复测试已通过；历史完整命令记录见
+`docs/12-final-release-audit.md`，恢复后的浏览器故障注入和清理记录见
+`docs/checkpoints/CP-20260902-loopback-browser-regression.md`。
 
 ## 阶段 2.75：宿主机准备与部署规划（本轮新增，进行中）
 
