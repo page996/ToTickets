@@ -1,8 +1,8 @@
 # Checkpoint: development-principles.v1 correction
 
-checkpoint_id: `CP-20260902-governance-correction-v1`  
-created_at_utc: `2026-09-02T10:21:49.365Z`  
-status: `documented`  
+checkpoint_id: `CP-20260902-governance-correction-v1`
+created_at_utc: `2026-09-02T10:21:49.365Z`
+status: `documented`
 base_git_commit: `31395d8`
 
 ## Reason and scope
