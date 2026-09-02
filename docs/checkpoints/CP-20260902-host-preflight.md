@@ -207,7 +207,7 @@ ADB server，已使用同一明确路径的 `adb kill-server` 关闭；最终无
 - `scripts/cargo.ps1 fmt --manifest-path apps/console/src-tauri/Cargo.toml -- --check`、
   `check --locked`、`clippy --locked --all-targets -- '-D' 'warnings'`：全部通过。
 - `scripts/tauri.ps1 build --no-bundle`：第二次使用注入的
-  `CONSOLE_API_BASE_URL`/`CONSOLE_EVENTS_URL` 成功；当前 release executable
+  `CONSOLE_API_BASE_URL`/`CONSOLE_EVENTS_URL` 成功；R1 时点 release executable
   SHA-256 为 `B80C0BC65048E5B4E7CF3BF67D2A80D99C31BE48D15F30A1D59AE53FE1CB7EAD`。
 
 ### Verification deviation and cleanup

@@ -22,8 +22,10 @@ profile 已取得双实例约 15 分钟量级观察证据，但第三实例启�
 - 已建立首次 Git 基线提交：`6fa3bbd`；恢复接管后的基线、配置修复和主机规划提交均位于
   `main` 提交链。
 - 本轮部署状态控制与契约测试作为收尾提交推送到
-  `https://github.com/page996/ToTickets`，未使用 force push；最终远程 SHA 在交付回执中
-  再次核验。
+  `https://github.com/page996/ToTickets`，未使用 force push；截至
+  `2026-09-02T19:36:45Z`（UTC）只读 `git ls-remote origin refs/heads/main` 返回
+  `64b7b1700d5fc8d8d685f9291792f20160a69a12`。后续本地文档更正提交的推送状态见末尾
+  “在线引用复核补充”及对应 checkpoint。
 
 ## 桌面回归
 
@@ -168,8 +170,8 @@ GPU/虚拟化未覆盖项标为 `unknown`；容量 profile 必须在目标宿主
 
 本文件前述模拟器段落是 2026-09-01 的发布审计快照，保留其原始结论；后续只读检查已
 发现用户创建的 AVD `ticket_test_1`（Android 37 Google APIs、`x86_64`、4 vCPU、2 GiB
-RAM、10 GiB data、E 盘数据目录）。这不改变本审计的发布状态：AVD 尚未启动，hypervisor
-driver 未安装，GPU/虚拟化/并发和真实 APK 兼容性仍未验收。完整当前证据见
+ RAM、10 GiB data、E 盘数据目录）。在该预检时点，AVD 尚未启动，hypervisor driver
+ 未安装，GPU/虚拟化/并发和真实 APK 兼容性仍未验收；这不改变本审计的发布状态。完整当前证据见
 `docs/checkpoints/CP-20260902-host-preflight.md`；`system-helper-manifest.v1` 当前
 为默认空 allowlist，不能因工具已安装而自动启动 helper。
 
@@ -181,7 +183,7 @@ driver 未安装，GPU/虚拟化/并发和真实 APK 兼容性仍未验收。完
 - helper manifest 定向测试 20/20；workspace 测试 API 19 suites/203 tests、Console 9
   files/81 tests；typecheck、Nest/Vite build、mock load self-test、静态合规、SBOM 和
   Rust fmt/check/clippy 均通过。
-- `scripts/tauri.ps1 build --no-bundle` 在注入 loopback 配置后通过；当前 release
+- `scripts/tauri.ps1 build --no-bundle` 在注入 loopback 配置后通过；R1 时点 release
   executable SHA-256 为
   `B80C0BC65048E5B4E7CF3BF67D2A80D99C31BE48D15F30A1D59AE53FE1CB7EAD`。这是本次构建的
   时间点哈希，不覆盖前文历史哈希，也不构成 bit-for-bit 可复现承诺。
