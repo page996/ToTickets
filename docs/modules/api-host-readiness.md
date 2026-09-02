@@ -113,7 +113,7 @@ WebSocket、CloudEvents、进程或设备通信端口；未来 provider-host 才
 | `M11-C3-manifest-registry` | `provider-manifests.ts` + JSON schema | active | provenance/hash、requirements 准入规则；当前仅 planning |
 | `M11-C4-capacity-planner` | `calculateProviderCapacity` | active | `HostPlannerPort`、ramp-test 输入/输出；当前仅 planning |
 | `M11-C5-rest-transport` | `host.controller.ts` + OpenAPI exposure | active | DTO/response contract、auth/RBAC |
-| `M11-C6-config-boundary` | `config/runtime-config.ts` 的 tools/storage/limits 消费 | active | 显式路径、loopback、配置审计 |
+| `M11-C6-config-boundary` | `apps/api/src/config/runtime-config.ts` 的 tools/storage/limits 消费 | active | 显式路径、loopback、配置审计 |
 | `M11-C7-test-harness` | `apps/api/test/host-service.spec.ts` fixtures | planned | `host-readiness.test.v1` formal test-only harness |
 
 ## 6. 专用测试入口与证据

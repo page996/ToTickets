@@ -27,7 +27,7 @@ system-helper manifest、人工确认和资源/权限门槛。模块不直接启
 | `streams` | `Map<string, StreamState>` | 适配器实例；测试/进程结束时释放，不持久化 |
 
 设备状态由共享 repository 类型约束为 `offline/discovering/booting/ready/waiting/error` 等有限值；
-预览状态为 `stopped/running/error`。当前 Mock 的不变量是：`stop()` 将设备置为
+当前实现的预览状态为 `stopped/running`（未来真实帧管线可在独立版本契约中增加错误投影）。当前 Mock 的不变量是：`stop()` 将设备置为
 `offline` 并停止其预览；其他操作只改变自身设备/流条目，不访问其他模块的内部表。
 
 真实实现还必须说明 serial、进程、端口、帧缓存和资源配额的 owner；这些字段不能从 Mock
@@ -43,7 +43,7 @@ system-helper manifest、人工确认和资源/权限门槛。模块不直接启
 | `stop(deviceId, requestId)` | 非空 device id | `DeviceState=offline`，预览停止 | 当前同步、无外部副作用；重复调用幂等 |
 | `reconnect(deviceId, requestId)` | 非空 device id | `DeviceState=ready` | 当前同步；真实实现必须有取消/超时 |
 | `health(deviceId)` | device id | `{state, heartbeatAgeMs}` | 只读；当前 heartbeat 为合成值 0 |
-| `startReadonlyPreview(deviceId, requestId)` | 设备已被人工确认；Mock fixture | `StreamState=running` | 当前同步；真实实现必须限制为只读帧 |
+| `startReadonlyPreview(deviceId, requestId)` | 上层 `DeviceService` 已完成设备人工确认；Mock fixture 本身不持有确认票据 | `StreamState=running` | 当前同步；真实实现必须限制为只读帧 |
 | `stopReadonlyPreview(deviceId, requestId)` | device id | `StreamState=stopped` | 当前同步、幂等 |
 
 `requestId` 只用于上层审计关联，适配器不得把它当凭据。未来跨进程端口必须冻结 schema
