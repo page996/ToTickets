@@ -239,3 +239,18 @@ provider-host 仍按本路线图的未完成门槛执行。
 
 在上述选择完成前，不启动 `entity4`，不把双实例观察写成 `safe_instances=2`，也不激活
 真实 helper/provider。人工验收完成后仍按既定顺序进入 SQLite；系统通知策略最后单独讨论。
+
+### 2026-09-03 低资源 profile 评估结果
+
+用户已选择低资源优先。对独立 `entity3` 完成两种 operator-run 候选观察：单独传入
+`-memory 2048 -gpu off` 的候选被 Emulator 日志提升为 `4096MB`，不接受；加入
+`-lowram -cores 2 -memory 2048 -gpu software` 后，effective 配置为 2 核/2 GiB/heap
+512，QEMU Private 约 3.55 GiB，5 分钟窗口 commit `84.30--84.80%`，可作为下一轮
+ramp 的候选输入。GPU software 因本机 `opengl32sw` 缺失回落 `lavapipe`，图形后端仍是
+独立风险。
+
+该结果只是“现有 baseline 实例 + 一个低资源候选”的混合观察，不构成两台低资源实例的
+容量证明，也不更新 `provider-manifest.v1`、`safe_instances` 或 API `max_devices`。下一门槛
+是独立第二个低资源 writable clone 的固定窗口和受保护 `1 -> 2 -> 4` ramp；在此之前不启动
+`entity4`，不改变生产默认值。详细报告见
+`docs/checkpoints/CP-20260903-low-resource-profile.md`。

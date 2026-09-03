@@ -227,3 +227,16 @@ commit `95.979%` 前触发保护并精确退出，未完成 boot；第四实例�
 `CP-20260903-gate-c-baseline-15m.md` 又记录了双实例约 15 分钟量级延长基线：实际采样
 914.2 秒，commit `81.446--83.260%`、Private 合计 `7.478--7.480 GiB`，两台 ADB/boot/
 唤醒状态全程正常。该证据仍是宿主机事实输入，不是 `safe_instances` 或 provider 接入授权。
+
+## 11. 低资源 profile 候选（2026-09-03）
+
+用户已选择低资源优先。Candidate A 的 `-memory 2048 -gpu off` 被 Android Emulator
+提升为 `4096MB`，因此不纳入 profile。Candidate B 的 operator-run 输入为
+`-lowram -cores 2 -memory 2048 -gpu software`；effective 配置为 2 核、2 GiB、heap
+512，GPU software 因 `opengl32sw` 缺失回落 `lavapipe`。在 baseline 实例旁的 30 样本
+窗口中，QEMU Private 约 3.55 GiB，commit `84.30--84.80%`，可作为下一轮 ramp 的候选。
+
+该候选仍是 M11 的观测输入，不改变 `PROVIDER_MANIFESTS`、`safe_instances`、
+`max_devices` 或部署默认值。正式 planner 输入前，必须建立独立第二个低资源 writable
+clone，完成低资源双实例固定窗口与受保护 `1 -> 2 -> 4` ramp，并分别记录 GPU/I/O 和
+目标宿主机差异。详细证据见 `docs/checkpoints/CP-20260903-low-resource-profile.md`。

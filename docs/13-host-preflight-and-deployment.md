@@ -274,3 +274,22 @@ ADB/boot/唤醒状态全程正常，宿主 commit `81.446--83.260%`。该窗口�
 激活 helper/provider。当前 Gate C 综合状态为 `verified_with_gap`：双实例有约 15 分钟量级
 观察，第三实例在 Android boot 前触发 commit 保护；低资源覆盖、目标宿主机复测、GPU/I/O
 归因、真实 APK 和人工 provider 验收仍未完成。历史预检段落保留不变，避免混淆不同时间点。
+
+## 2026-09-03 低资源候选观察
+
+用户已批准低资源优先。对独立 `entity3` 的第一候选（`-memory 2048 -gpu off`）观察到
+Emulator 明确将 RAM 提升为 `4096MB`，effective 配置为 `4096/lavapipe`，因此不接受为
+低资源 profile。第二候选加入 `-lowram -cores 2 -memory 2048 -gpu software` 后，effective
+配置为 2 核、2 GiB、heap 512；GPU software 因本机缺少 `opengl32sw` 回落到 `lavapipe`。
+在保留 `ticket_test_1` 的混合窗口中，第二候选 30 个样本全程 boot/ADB/进程健康，QEMU
+Private 约 3.55 GiB，commit `84.30--84.80%`，可作为下一轮 ramp 的候选输入。
+
+本节只是目标宿主机的观察事实，不替换 `PROVIDER_MANIFESTS` 的规划 profile，也不写入
+`safe_instances`、`max_devices` 或部署默认值。下一轮必须使用独立的第二个低资源 writable
+clone，完成低资源双实例固定窗口和受保护 `1 -> 2 -> 4` ramp；GPU 后端、I/O 和目标宿主机
+差异仍需独立 checkpoint。运行报告和停止/锁归档证据见
+`docs/checkpoints/CP-20260903-low-resource-profile.md`。
+
+本节之后的最新现场以该 checkpoint 为准：`ticket_test_1` 保持在线，`ticket_test_2` 已在
+前一轮保护停止后离线；第 11 节中“两台均为 device”的描述保留为其原时间点快照，不代表
+当前运行状态。
