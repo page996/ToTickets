@@ -163,6 +163,47 @@ function Test-IsLoopbackBindPolicyConstantLine {
     )
 }
 
+function Test-IsTauriIpcOriginPolicyLine {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Line
+    )
+
+    $relative = Get-ProjectRelativePath -Path $Path
+    if ($relative -eq 'apps/console/src-tauri/tauri.conf.json') {
+        # The complete base CSP is validated separately. Only mask this one
+        # literal while the rest of the same JSON line continues to be scanned.
+        return $Line -match 'http://ipc\.localhost'
+    }
+    if ($relative -eq 'apps/console/scripts/tauri-config-overlay.mjs') {
+        return $Line -match '^\s*const TAURI_IPC_ORIGIN\s*=\s*''http://ipc\.localhost'';\s*$'
+    }
+    return $false
+}
+
+function Test-TauriBaseCspPolicy {
+    param([Parameter(Mandatory = $true)][System.IO.FileInfo]$File)
+
+    try {
+        $config = Get-Content -Raw -LiteralPath $File.FullName | ConvertFrom-Json
+        $csp = $config.app.security.csp
+    } catch {
+        Add-Violation -Category 'runtime-address-path' -Path $File.FullName -Message "Invalid Tauri base configuration: $($_.Exception.Message)"
+        return
+    }
+
+    if ($csp -isnot [string]) {
+        Add-Violation -Category 'runtime-address-path' -Path $File.FullName -Message 'Tauri base CSP must be a string.'
+        return
+    }
+
+    $normalized = (($csp -split ';' | ForEach-Object { ($_ -replace '\s+', ' ').Trim() } | Where-Object { $_ }) -join '; ')
+    $expected = "default-src 'self'; img-src 'self' asset: data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'"
+    if ($normalized -cne $expected) {
+        Add-Violation -Category 'runtime-address-path' -Path $File.FullName -Message 'Tauri base CSP differs from the exact host-neutral policy.' -Evidence $csp
+    }
+}
+
 function Get-TextLines {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -184,19 +225,27 @@ function Test-HardcodedRuntimeValues {
     $isPackageManifest = $File.Name -in @('package.json', 'Cargo.toml')
     $lines = Get-TextLines -Path $File.FullName
 
+    if ($relative -eq 'apps/console/src-tauri/tauri.conf.json') {
+        Test-TauriBaseCspPolicy -File $File
+    }
+
     for ($index = 0; $index -lt $lines.Count; $index++) {
         $line = $lines[$index]
+        $scanLine = $line
+        if (Test-IsTauriIpcOriginPolicyLine -Path $File.FullName -Line $line) {
+            $scanLine = $line.Replace('http://ipc.localhost', '${TAURI_INTERNAL_IPC_ORIGIN}')
+        }
         $lineNumber = $index + 1
 
-        if (-not $isGeneratedLock -and $line -match '(?<![A-Za-z0-9+.-])[A-Za-z]:[\\/]') {
+        if (-not $isGeneratedLock -and $scanLine -match '(?<![A-Za-z0-9+.-])[A-Za-z]:[\\/]') {
             Add-Violation -Category 'runtime-address-path' -Path $File.FullName -Line $lineNumber -Message 'Hardcoded Windows absolute path.' -Evidence $line
         }
-        $hasRawUncPath = $line -match '(?<![\\])\\\\[A-Za-z0-9][A-Za-z0-9._-]*\\[A-Za-z0-9$._-]+'
-        $hasEscapedUncPath = $line -match '(?<![\\])\\\\\\\\[A-Za-z0-9][A-Za-z0-9._-]*\\\\[A-Za-z0-9$._-]+'
+        $hasRawUncPath = $scanLine -match '(?<![\\])\\\\[A-Za-z0-9][A-Za-z0-9._-]*\\[A-Za-z0-9$._-]+'
+        $hasEscapedUncPath = $scanLine -match '(?<![\\])\\\\\\\\[A-Za-z0-9][A-Za-z0-9._-]*\\\\[A-Za-z0-9$._-]+'
         if (-not $isGeneratedLock -and ($hasRawUncPath -or $hasEscapedUncPath)) {
             Add-Violation -Category 'runtime-address-path' -Path $File.FullName -Line $lineNumber -Message 'Hardcoded UNC absolute path.' -Evidence $line
         }
-        if (-not $isGeneratedLock -and $line -match '(?<![A-Za-z0-9_.-])/(?:home|Users|var|tmp|opt|usr|etc|srv|data|mnt|Volumes)(?:/|\\)') {
+        if (-not $isGeneratedLock -and $scanLine -match '(?<![A-Za-z0-9_.-])/(?:home|Users|var|tmp|opt|usr|etc|srv|data|mnt|Volumes)(?:/|\\)') {
             Add-Violation -Category 'runtime-address-path' -Path $File.FullName -Line $lineNumber -Message 'Hardcoded Unix absolute runtime path.' -Evidence $line
         }
 
@@ -211,25 +260,25 @@ function Test-HardcodedRuntimeValues {
             continue
         }
 
-        $urlMatches = [regex]::Matches($line, '(?i)\b(?:https?|wss?)://(?:\[[^\]]+\]|[A-Za-z0-9.-]+)(?::(?:\d+|\*))?')
+        $urlMatches = [regex]::Matches($scanLine, '(?i)\b(?:https?|wss?)://(?:\[[^\]]+\]|[A-Za-z0-9.-]+)(?::(?:\d+|\*))?')
         if ($urlMatches.Count -gt 0) {
             $urls = ($urlMatches | ForEach-Object { $_.Value } | Select-Object -Unique) -join ', '
             Add-Violation -Category 'runtime-address-path' -Path $File.FullName -Line $lineNumber -Message "Hardcoded HTTP/WS runtime host: $urls" -Evidence $line
             continue
         }
 
-        if ($line -match '(?i)(?<![A-Za-z0-9.-])(?:localhost|0\.0\.0\.0|127\.0\.0\.1|\[?::1\]?)(?![A-Za-z0-9.-])') {
+        if ($scanLine -match '(?i)(?<![A-Za-z0-9.-])(?:localhost|0\.0\.0\.0|127\.0\.0\.1|\[?::1\]?)(?![A-Za-z0-9.-])') {
             Add-Violation -Category 'runtime-address-path' -Path $File.FullName -Line $lineNumber -Message 'Hardcoded loopback or wildcard host.' -Evidence $line
             continue
         }
 
-        $hostAssignment = [regex]::Match($line, '(?i)\b(?:bind[_-]?host|host(?:name)?|origin|endpoint|base[_-]?url|api[_-]?url|ws[_-]?url)\b\s*(?::|(?<![=!<>])=(?!=))\s*[''"](?<value>[^''"]+)[''"]')
+        $hostAssignment = [regex]::Match($scanLine, '(?i)\b(?:bind[_-]?host|host(?:name)?|origin|endpoint|base[_-]?url|api[_-]?url|ws[_-]?url)\b\s*(?::|(?<![=!<>])=(?!=))\s*[''"](?<value>[^''"]+)[''"]')
         if ($hostAssignment.Success -and $hostAssignment.Groups['value'].Value -notmatch $placeholderPattern) {
             Add-Violation -Category 'runtime-address-path' -Path $File.FullName -Line $lineNumber -Message "Hardcoded runtime host/origin value: $($hostAssignment.Groups['value'].Value)" -Evidence $line
             continue
         }
 
-        $ipv4Matches = [regex]::Matches($line, '(?<![A-Za-z0-9.])(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(?:\.(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}(?![A-Za-z0-9.])')
+        $ipv4Matches = [regex]::Matches($scanLine, '(?<![A-Za-z0-9.])(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(?:\.(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})){3}(?![A-Za-z0-9.])')
         if ($ipv4Matches.Count -gt 0) {
             Add-Violation -Category 'runtime-address-path' -Path $File.FullName -Line $lineNumber -Message "Hardcoded IPv4 address: $($ipv4Matches[0].Value)" -Evidence $line
         }

@@ -28,7 +28,7 @@
 
 ## Tauri CSP overlay
 
-`src-tauri/tauri.conf.json` 只保存主机无关的最小 CSP，其中 `connect-src` 仅允许 `'self'` 和 `ipc:`。包脚本 `pnpm ... tauri build` 或 `pnpm ... tauri dev` 会在启动 Tauri 前执行以下步骤：
+`src-tauri/tauri.conf.json` 只保存主机无关的最小 CSP，其中 `connect-src` 仅允许 `'self'`、`ipc:` 和 Tauri 固定内部 IPC origin `http://ipc.localhost`。后者不是部署地址，也不由运行时 endpoint 配置；它只让 WebView2 的 Tauri bridge 请求通过 CSP。包脚本 `pnpm ... tauri build` 或 `pnpm ... tauri dev` 会在启动 Tauri 前执行以下步骤：
 
 1. 严格校验 `CONSOLE_API_BASE_URL` 和 `CONSOLE_EVENTS_URL` 的 loopback 主机、协议、版本化路径及共同的 host/port。
 2. 只提取两个 URL 的 origin，并合并到基线 CSP 的 `connect-src`。

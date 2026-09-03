@@ -32,6 +32,21 @@ function Write-FixtureFile {
     [System.IO.File]::WriteAllText($path, $Content, [System.Text.UTF8Encoding]::new($false))
 }
 
+function Write-TauriCspFixture {
+    param([Parameter(Mandatory = $true)][string]$Csp)
+
+    $config = [ordered]@{
+        app = [ordered]@{
+            security = [ordered]@{
+                csp = $Csp
+            }
+        }
+    }
+    Write-FixtureFile -RelativePath 'apps/console/src-tauri/tauri.conf.json' -Content (
+        $config | ConvertTo-Json -Depth 4
+    )
+}
+
 function Invoke-FixtureCheck {
     $output = (& $engine -NoProfile -NonInteractive -File $checker -ProjectRoot $fixtureRoot 2>&1 | Out-String)
     return [pscustomobject]@{
@@ -99,6 +114,38 @@ export function loadHost(): string {
     $clean = Invoke-FixtureCheck
     Assert-True -Condition ($clean.ExitCode -eq 0) -Message "Expected clean fixture to pass.`n$($clean.Output)"
     Assert-True -Condition ($clean.Output -match 'PASSED:') -Message 'Clean fixture did not print a pass result.'
+
+    $tauriBaseCsp = "default-src 'self'; img-src 'self' asset: data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; frame-src 'none'; base-uri 'self'; form-action 'none'"
+    Write-TauriCspFixture -Csp $tauriBaseCsp
+    $tauriIpc = Invoke-FixtureCheck
+    Assert-True -Condition ($tauriIpc.ExitCode -eq 0) -Message "Tauri IPC origin policy should be allowed.`n$($tauriIpc.Output)"
+
+    $unsafeTauriCspCases = [ordered]@{
+        'external URL' = $tauriBaseCsp.Replace('http://ipc.localhost', 'http://ipc.localhost http://unapproved.example.invalid')
+        'wildcard source' = $tauriBaseCsp.Replace('http://ipc.localhost', 'http://ipc.localhost *')
+        'scheme-only source' = $tauriBaseCsp.Replace('http://ipc.localhost', 'http://ipc.localhost https:')
+        'bare host source' = $tauriBaseCsp.Replace('http://ipc.localhost', 'http://ipc.localhost unapproved.example.invalid')
+        'trailing directive' = "$tauriBaseCsp; worker-src *"
+    }
+    foreach ($unsafeCase in $unsafeTauriCspCases.GetEnumerator()) {
+        Write-TauriCspFixture -Csp $unsafeCase.Value
+        $tauriUnsafe = Invoke-FixtureCheck
+        Assert-True -Condition ($tauriUnsafe.ExitCode -eq 1) -Message "Unapproved Tauri CSP $($unsafeCase.Key) should fail compliance."
+        Assert-True -Condition ($tauriUnsafe.Output -match 'exact host-neutral policy') -Message "Unapproved Tauri CSP $($unsafeCase.Key) did not report the exact-policy violation.`n$($tauriUnsafe.Output)"
+    }
+    Remove-Item -LiteralPath (Join-Path $fixtureRoot 'apps/console/src-tauri/tauri.conf.json') -Force
+
+    Write-FixtureFile -RelativePath 'apps/console/scripts/tauri-config-overlay.mjs' -Content @'
+const TAURI_IPC_ORIGIN = 'http://ipc.localhost';
+'@
+    $tauriOverlayConstant = Invoke-FixtureCheck
+    Assert-True -Condition ($tauriOverlayConstant.ExitCode -eq 0) -Message "Exact Tauri IPC overlay constant should pass compliance.`n$($tauriOverlayConstant.Output)"
+    Write-FixtureFile -RelativePath 'apps/console/scripts/tauri-config-overlay.mjs' -Content @'
+const TAURI_IPC_ORIGIN = 'http://ipc.localhost'; const unsafeOrigin = 'http://unapproved.example.invalid';
+'@
+    $tauriOverlayTrailing = Invoke-FixtureCheck
+    Assert-True -Condition ($tauriOverlayTrailing.ExitCode -eq 1) -Message 'Tauri IPC overlay exception must not allow trailing content.'
+    Remove-Item -LiteralPath (Join-Path $fixtureRoot 'apps/console/scripts/tauri-config-overlay.mjs') -Force
 
     Write-FixtureFile -RelativePath 'src/unsafe.ts' -Content @'
 const endpoint = "http://127.0.0.1:3000";

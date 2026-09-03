@@ -246,3 +246,21 @@ GPU renderer follow-up（详见 `docs/checkpoints/CP-20260903-gpu-renderer.md`�
 均通过 5 分钟离线 Settings smoke。`opengl32sw.dll` 缺失使 `-gpu software` legacy 路径
 仍为风险；这些结果不进入容量公式或部署默认值，必须与 I/O、温度和按进程 GPU 归因分开
 记录。
+
+## 12. entity5 低资源单实例输入（2026-09-03）
+
+最新独立记录为 [`CP-20260903-low-resource-entity5.md`](../checkpoints/CP-20260903-low-resource-entity5.md)。
+用户批准的 `ticket_test_5`/`entity5` 使用 Android 37 Google APIs `x86_64` 与
+`-lowram -cores 2 -memory 2048 -gpu host`；进程命令行和 effective 配置均确认 2 核、
+2048 MiB、heap 512，effective 配置哈希为
+`BF8DB0F02597D56E1863B10BB719B0E4BC97BF29AA95A018EB0561A23C29B694`。300 秒/30 样本中
+ADB `device`、boot=1、进程响应和 6 次 Settings smoke 均通过；Free RAM 最低
+`11.359 GiB`、commit `87.126--87.730%`、QEMU Working `2.937--3.006 GiB`、Private
+`3.615--3.758 GiB`。
+
+这只是 M11 的单实例观测输入，不是 `HostPlannerPort` 已接受的容量 profile。commit 超过
+`<=85%` 启动规划线，不能更新 `PROVIDER_MANIFESTS`、`safe_instances`、`max_devices` 或
+部署默认值；host GPU 的 renderer 证据仍需与 legacy `opengl32sw.dll` 缺口、I/O/温度和
+目标宿主机差异分开记录。entity5 已提供第二个独立低资源 clone，但低资源双实例固定窗口
+和受保护 `1 -> 2 -> 4` ramp 仍未完成，下一步应先完成该窗口再考虑 planner 输入或
+`HostPlannerPort` 连接，不启动 `entity4`。

@@ -25,7 +25,7 @@ describe('Tauri CSP overlay', () => {
     const overlay = createTauriConfigOverlay(baseCsp, environment);
     const connectSources = directiveSources(overlay.app.security.csp, 'connect-src');
 
-    expect(connectSources).toEqual(["'self'", 'ipc:', origins.apiOrigin, origins.eventsOrigin]);
+    expect(connectSources).toEqual(["'self'", 'ipc:', 'http://ipc.localhost', origins.apiOrigin, origins.eventsOrigin]);
     expect(overlay.app.security.csp).toContain("default-src 'self'");
     expect(overlay.app.security.csp).toContain("object-src 'none'");
     expect(baseCsp).not.toContain(origins.apiOrigin);
@@ -91,8 +91,8 @@ describe('Tauri CSP overlay', () => {
   it('refuses to inherit a network source from the base Tauri config', () => {
     const { apiOrigin } = configuredOrigins(environment);
     const unsafeCsp = baseCsp.replace(
-      "connect-src 'self' ipc:",
-      `connect-src 'self' ipc: ${apiOrigin}`,
+      "connect-src 'self' ipc: http://ipc.localhost",
+      `connect-src 'self' ipc: ${apiOrigin} http://ipc.localhost`,
     );
 
     expect(() => createTauriConfigOverlay(unsafeCsp, environment)).toThrow(/host-neutral/);

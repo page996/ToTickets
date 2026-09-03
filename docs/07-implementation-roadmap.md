@@ -259,3 +259,35 @@ ramp 的候选输入。GPU software 因本机 `opengl32sw` 缺失回落 `lavapip
 是独立第二个低资源 writable clone 的固定窗口和受保护 `1 -> 2 -> 4` ramp；在此之前不启动
 `entity4`，不改变生产默认值。详细报告见
 `docs/checkpoints/CP-20260903-low-resource-profile.md`。
+
+### 2026-09-03 entity5 低资源单实例观察
+
+用户批准建立的 `ticket_test_5`/`entity5` 已完成一次独立低资源候选观察：Android 37
+Google APIs `x86_64`，运行时参数为 `-lowram -cores 2 -memory 2048 -gpu host`，effective
+配置为 2 核、2048 MiB、heap 512；5 分钟 30 样本窗口全程 ADB/boot/进程健康，Free RAM
+最低 `11.359 GiB`，commit `87.126--87.730%`，QEMU Private `3.615--3.758 GiB`。
+原始启动命令、PID、effective 配置哈希、Settings smoke 和停止证据见
+`docs/checkpoints/CP-20260903-low-resource-entity5.md`。
+
+该结果是用户批准的 operator-run 单实例事实，不是 M11 planner、helper 或 provider
+激活；commit 高于 `<=85%` 启动规划线，不能把它解释为安全容量，也不更新
+`safe_instances`、`max_devices` 或部署默认值。它补齐了第二个低资源候选的单实例输入，
+但尚未证明两个低资源实例并行稳定。下一门槛为低资源双实例固定窗口和受保护
+`1 -> 2 -> 4` ramp，并分别收集 GPU/I/O、温度、磁盘写入及目标宿主机 preflight；在此
+之前不启动 `entity4`，不改变真实 adapter/helper 边界。
+
+### 2026-09-03 Tauri release runtime smoke
+
+在重新构建 release 二进制后，使用动态 loopback API `59701`、WebView2 CDP `50131` 启动
+`human-assist-console.exe`，release SHA-256 为
+`22F50D6BAC64C029E904B5BA56157CC83CBFA457443EB11C17C379B9051F2358`。程序化证据记录
+在 `.runtime/r2-console-tauri-release-20260903/browser-evidence.json` 及同目录
+`runtime-before-stop.json`/`runtime-after-stop.json`：1 个合成设备、1 条提醒、2 条审计，
+5 个 REST URL、WebSocket sync+2 事件帧，console/page errors 为 0；release 窗口关闭和
+目标监听均已确认清理。
+
+该结果只关闭 release runtime/IPC/WS 的程序化 smoke 子项，不等同于用户人工 Tauri
+签收，也不覆盖真实 APK/真实平台兼容性。此前 dev/旧二进制证据保留为历史时点；阶段 2
+的人工验收门槛仍在。下一门槛改为先对 `entity3 + entity5` 做低资源双实例固定窗口，
+再按保护规则执行 `1 -> 2 -> 4` ramp，并补齐 GPU/I/O、温度、磁盘写入和目标宿主机
+preflight；不启动 `entity4`，不改变 helper/provider 默认值。

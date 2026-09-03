@@ -136,3 +136,28 @@ M12/M13、API Common/顶层支撑边界及 Console 递归边界均有 canonical 
 目标宿主机 preflight runner、provider-host 和 phantom dependency 等治理缺口。
 checkpoint 的关闭只表示策略/文档登记完成，不表示真实 provider 部署完成；下一 gate 仍须
 另建 R2 记录处理设备、helper、依赖或外部网络动作。
+
+## 2026-09-03 entity5 证据索引追加
+
+以下是对既有模块表的追加索引，不覆盖表中历史 checkpoint 或改变模块实现状态：
+
+| 模块 | 新增 checkpoint | 本次证据 | 下一门槛 |
+| --- | --- | --- | --- |
+| `M11-host-readiness` | `CP-20260903-low-resource-entity5` | `ticket_test_5` 低资源单实例 300 秒/30 样本；Free RAM 最低 `11.359 GiB`、commit `87.126--87.730%`、QEMU Private `3.615--3.758 GiB`；仅作 planner 输入 | 低资源双实例固定窗口、受保护 `1 -> 2 -> 4` ramp、GPU/I/O/温度及目标宿主机 preflight；不更新 `safe_instances` |
+| `M7-adapter-layer` | `CP-20260903-low-resource-entity5` | operator-run ADB/Emulator 健康和 Settings 只读 smoke；仅启动 Settings，未发送触摸、文本或购票流程输入，未激活真实 adapter/helper | 独立只读 provider-host/DeviceAdapter 端口、helper 白名单和人工验收；不把单实例观察写成 provider 授权 |
+
+entity5 观察的原始命令、PID、effective 配置哈希、截图和精确停止结果只保存在该
+checkpoint 与被忽略的 `.runtime/r2-avd-entity5-20260903/`；本索引不授权启动外部进程，
+也不改变现行 loopback 边界。
+
+## 2026-09-03 Tauri release 证据索引追加
+
+以下追加项只更新证据索引，不覆盖 `M9`/Console 子模块表中的历史状态或人工验收门槛：
+
+| 模块 | 新增 checkpoint/证据 | 本次程序化结果 | 仍待完成 |
+| --- | --- | --- | --- |
+| `M9-console-contract-ui` / `CON-C3-control-plane-client` | `CP-20260903-console-tauri-acceptance`；`.runtime/r2-console-tauri-release-20260903/browser-evidence.json` | release binary hash `22F50D6BAC64C029E904B5BA56157CC83CBFA457443EB11C17C379B9051F2358`；动态 loopback `59701`、CDP `50131`；1 设备/1 提醒/2 审计，REST 5 URL、WS sync+2 事件帧、errors=0；优雅关闭后目标进程/监听清空 | 用户人工 Tauri 签收、真实 APK/只读 provider 兼容性及正式 test-only harness |
+
+本次 CSP 中的 `http://ipc.localhost` 仍是 Tauri 固定内部 IPC origin；API/WS loopback
+只属于运行时注入证据，不构成远程 exposure。下一门槛为 `entity3 + entity5` 低资源双
+实例固定窗口及受保护 ramp；索引不授权启动 `entity4` 或激活 helper/provider。

@@ -11,7 +11,7 @@
 本文开头的审计表是 2026-09-01 的历史基线；后续日期章节是不可覆盖的追加事实，不能
 把不同时间点的测试数字或产物哈希混作同一轮结果。当前可复核状态为：项目隔离工具链
 复验 API 19 suites/203 tests、Console 9 files/81 tests 通过；最近一次隔离重建的 release
-executable 哈希为 `5E074D...`（R1 先前构建为 `B80C0BC...`），SBOM 哈希为
+executable 哈希为 `832948...`（实际运行验收时点为 `22F50D...`），SBOM 哈希为
 `40E5C54F...`；Gate C 当前
 profile 已取得双实例约 15 分钟量级观察证据，但第三实例启动峰值触发保护，仍为
 `verified_with_gap`，对外暴露继续限制为 loopback。
@@ -279,14 +279,16 @@ llvmpipe 组件；旧式 `opengl32sw.dll` 缺失，因此 `-gpu software` 的 le
   commit `86.44--87.67%`，QEMU Private `3.508--3.560 GiB`。
 - `-gpu swiftshader_indirect` 在同样窗口中选中内置 SwiftShader，Free RAM 最低 11.252 GiB，
   commit `86.82--88.49%`，QEMU Private `3.622--3.661 GiB`。
-- 两种模式均完成 6 周期 Settings 启动/截图/内存 smoke，未发送输入命令；该证据是系统
+- 两种模式均完成 6 周期 Settings 启动/截图/内存 smoke；仅启动 Settings，未发送触摸、
+  文本或购票流程输入。该证据是系统
   App 离线观察，不代表真实大麦 APK 兼容性或人工购票验收。
 
 因此，`host` 作为本机 GPU 加速候选，`swiftshader_indirect` 作为可复现 fallback；两者
-都不构成并发容量或部署默认值。当前发布状态继续为 `verified_with_gap`，下一门槛仍是第二个
-低资源 writable clone、固定时长 repeat/soak、I/O/温度/按进程 GPU 归因、mock APK
-test-only harness 和人工 Console/Tauri 验收。当前现场只保留 loopback `ticket_test_1`；
-`entity3` 的测试锁已按精确停止后改名归档，`entity4` 未启动。
+都不构成并发容量或部署默认值。当前发布状态继续为 `verified_with_gap`。本段记录时的容量
+门槛仍是第二个低资源 writable clone；后续 `entity5` 已完成该 clone 的创建和单实例观察，
+当前容量门槛以下文 `entity3 + entity5` 固定窗口、I/O/温度/按进程 GPU 归因和 mock APK
+test-only harness 为准。用户人工 Console/Tauri 签收仍是独立产品流程门槛。当前现场只保留
+loopback `ticket_test_1`；`entity3` 的测试锁已按精确停止后改名归档，`entity4` 未启动。
 
 ### 2026-09-03 最新隔离构建产物
 
@@ -297,3 +299,82 @@ test-only harness 和人工 Console/Tauri 验收。当前现场只保留 loopbac
 `A00419BFBC175C42CCF7ACCB5379358DA7C1BB21C63035061B5BE3FC058F365C`。该哈希只代表本次
 构建时间点；旧的 `5E074D...`、`B80C...` 和历史哈希均保留其原始时点，SBOM 哈希仍为
 `40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B`。
+
+## 2026-09-03 Tauri release runtime 验收更正补充
+
+本节是对前文“原生窗口尚未完成”历史表述和先前 debug 运行记录的追加更正，不覆盖任何
+历史时间点。复核发现旧运行目录中的 `tauri-dev.json` 对应 `tauri dev`/`target\\debug`，
+且 `ready=false`；那一轮不能单独作为 release 原生验收证据。随后使用当前 CSP overlay
+重建并实际启动 release executable，形成独立的运行证据目录
+`.runtime/r2-console-tauri-release-20260903/`。
+
+- API 为显式注入的 loopback `http://127.0.0.1:59701/api/v1`，事件流为
+  `ws://127.0.0.1:59701/api/v1/events`；生成 CSP 同时包含 Tauri 固定内部
+  `http://ipc.localhost` 和上述 API/WS origin，未加入 wildcard 或外部 host。
+- 实际启动文件为 `apps\\console\\src-tauri\\target\\release\\human-assist-console.exe`；
+  主进程 PID `14848`、WebView2 root PID `5300`、CDP `127.0.0.1:50131`、API node PID
+  `39328`。详细父子命令行、监听和 `health.live` 见
+  `.runtime/r2-console-tauri-release-20260903/runtime-before-stop.json`。
+- release 页面 origin 为 `http://tauri.localhost`，显示 1 个合成设备、1 个合成提醒和
+  2 条审计；设备、提醒、审计视图均加载成功。CDP 记录到 devices/schedules/audit/clock
+  REST 请求和 `event-stream.sync.v1`/CloudEvents WebSocket 帧，Console/page error 均为 0；
+  结构化证据见 `.runtime/r2-console-tauri-release-20260903/browser-evidence.json`。
+- 原生 viewport 截图：`release-viewport.png` `158667` bytes、`2880x1840`；
+  `release-设备.png` `97549` bytes、`2880x1840`；`release-提醒.png` `92681` bytes、
+  `2880x1840`；`release-审计.png` `119464` bytes、`2880x1840`。这些文件均被忽略，
+  仅作为本轮证据，不进入发布包。
+- 本次 release executable SHA-256 为
+  `22F50D6BAC64C029E904B5BA56157CC83CBFA457443EB11C17C379B9051F2358`。关闭时先成功调用
+  `CloseMainWindow()`，再按已记录命令行精确关闭 API；`.runtime/.../runtime-after-stop.json`
+  确认 release/API/CDP 监听均消失，现场只保留用户 ADB/`ticket_test_1`。
+
+结论：release shell 的 IPC、REST、WS 与合成数据绑定已由受控程序化窗口验收确认；这不等于
+用户亲自签字的人工窗口验收。若人工验收门槛要求用户操作，应由用户查看本目录截图或在桌面
+启动一次后再闭合该项。当前发布状态仍为 `verified_with_gap`，不改变 loopback、mock-only、
+真实平台人工边界，也不提前进入 SQLite 或系统通知策略。
+
+## 2026-09-03 entity5 低资源单实例观察补充
+
+本节只追加用户批准的 `entity5` operator-run 观察事实，不改写前述 Gate C、GPU 或发布
+状态。详细原始记录见 [`CP-20260903-low-resource-entity5.md`](checkpoints/CP-20260903-low-resource-entity5.md)，
+聚合运行文件位于被忽略的 `.runtime/r2-avd-entity5-20260903/`；运行报告不进入源码、
+helper manifest 或部署默认值。
+
+- 目标为 `ticket_test_5`，数据目录为用户选择的 `E:\\ticket-test\\entity5`，Android 37
+  Google APIs `x86_64` 镜像；启动命令为
+  `emulator.exe -avd ticket_test_5 -port 5560 -no-snapshot -no-snapshot-save -no-boot-anim -qt-hide-window -lowram -cores 2 -memory 2048 -gpu host`。
+  运行时复核的 Emulator/QEMU PID 为 `10408/28456`，effective 配置哈希为
+  `BF8DB0F02597D56E1863B10BB719B0E4BC97BF29AA95A018EB0561A23C29B694`。
+- 5 分钟窗口请求 300 秒、30 个样本（`2026-09-03T11:58:39Z`--`12:03:44Z`）均为
+  ADB `device`、`sys.boot_completed=1`、进程响应；6 次 Settings 启动/截图/内存 smoke
+  均健康；仅显式启动 Settings，未发送触摸、文本或购票流程输入。截图和 stdout/stderr
+  文件名见上述 `.runtime` 目录。
+- 观测范围为：Free RAM 最低 `11.359 GiB`，宿主 commit `87.126--87.730%`，QEMU
+  Working Set `2.937--3.006 GiB`，QEMU Private `3.615--3.758 GiB`，未触发保护线。
+  `host` 日志识别 NVIDIA RTX 5080、Vulkan/WHPX；legacy `opengl32sw.dll` 缺失仍是
+  software renderer 风险，不能把本次结果写成 software-only 结论。
+- 结束时仅按已核对 serial 执行 `adb -s emulator-5560 emu kill`，`5560/5561` listener
+  和对应进程均消失；`ticket_test_1` 未被触碰。该操作是用户批准的 operator-run 观察，
+  不是项目 helper/provider 激活，也未安装 APK 或访问真实平台。
+
+该结果只证明一个低资源候选的短时单实例稳定性；commit 高于既定双实例启动规划线
+`<=85%`，因此不更新 `safe_instances`、`max_devices`、provider manifest 或部署默认值。
+容量评估的下一门槛是现有 `entity3 + entity5` 的低资源双实例固定窗口，再按保护规则
+执行 `1 -> 2 -> 4` ramp，并补齐按进程 GPU/I/O、温度、磁盘写入和目标宿主机 preflight
+证据。在该门槛完成前不启动 `entity4`，不激活真实 helper/provider；人工 Console/Tauri
+签收仍是进入 SQLite 前的独立产品流程门槛；系统通知策略保持最后讨论。两个门槛并列，
+彼此不能替代。
+
+## 2026-09-03 当前完整隔离门禁
+
+完成 release runtime smoke 并清理其进程后，使用仓库内 `.tools` wrapper 和动态 loopback
+测试配置重新运行完整门禁：API `19 suites/203 tests`、Console `9 files/81 tests`、workspace
+typecheck/build、mock load self-test、静态合规及两组自测、SBOM current/self-test、Rust
+fmt/check/clippy 和 Tauri `build --no-bundle` 均通过。SBOM 自测为 `1143` components、
+`1144` dependency nodes；本轮未启动 API、Vite、Tauri 窗口、ADB、AVD、APK 或 helper。
+
+最终门禁构建使用 `59811` 作为无监听的 loopback fixture；当前 release executable SHA-256 为
+`83294804715AB2259439AF4F00DE3416F195D549268BEB679EE1E06F5FF1B7D2`，SBOM SHA-256 为
+`40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B`。前述运行验收 hash
+`22F50D...` 属于 `59701` CSP 构建时点，二者均保留且不能互相替代，也不构成 bit-for-bit
+可复现承诺。

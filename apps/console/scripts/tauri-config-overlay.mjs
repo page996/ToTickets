@@ -9,7 +9,11 @@ const BASE_CONFIG_SEGMENTS = ['src-tauri', 'tauri.conf.json'];
 const GENERATED_CONFIG_SEGMENTS = ['.runtime', 'tauri.generated.conf.json'];
 const API_PROTOCOL_PATH = '/api/v1';
 const EVENTS_PROTOCOL_PATH = '/api/v1/events';
-const HOST_NEUTRAL_CONNECT_SOURCES = new Set(["'self'", 'ipc:']);
+// Tauri's IPC bridge is implemented by the WebView as this fixed internal
+// origin. It is not a configurable network endpoint and must never be reused
+// for API exposure.
+const TAURI_IPC_ORIGIN = 'http://ipc.localhost';
+const HOST_NEUTRAL_CONNECT_SOURCES = new Set(["'self'", 'ipc:', TAURI_IPC_ORIGIN]);
 
 function isLoopbackHostname(hostname) {
   const normalized = hostname.replace(/^\[|\]$/g, '').toLowerCase();
@@ -129,7 +133,9 @@ export function createTauriConfigOverlay(baseCsp, environment) {
     baseSources.length === 0 ||
     baseSources.some((source) => !HOST_NEUTRAL_CONNECT_SOURCES.has(source))
   ) {
-    throw new Error("base Tauri connect-src must remain host-neutral with only 'self' and ipc:");
+    throw new Error(
+      "base Tauri connect-src must remain host-neutral with only 'self', ipc:, and the approved internal IPC origin",
+    );
   }
 
   const generatedSources = [...new Set([...baseSources, origins.apiOrigin, origins.eventsOrigin])];

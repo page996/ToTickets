@@ -85,7 +85,7 @@ ID、响应字段和枚举在边界处严格校验。`write()` 在调用方未�
 | Console → API | `docs/openapi.v1.json` 的 `/api/v1/devices*`、`/schedules*`、`/audit*`、`/clock`、`/safety/*` | REST JSON、snake_case、`X-Operator-Id`/`Idempotency-Key`；设备安全命令另需 confirmation | 网络请求和服务端审计；UI 不直接操作设备 |
 | API → Console | `cloud-event-envelope.v1`、`event-stream.sync.v1` 及各事件 schema | CloudEvents `data.sequence` 单调；sync frame 含 `since`/`stream_id`/reset 信息 | 内存接收；帧不落盘 |
 | Console → API WS | `GET /api/v1/events?since=<sequence>&stream_id=<id>` | `ControlPlaneEventStream` 生成查询；server origin/capacity close policy 由 API exposure owner 定义 | 建立/关闭 socket |
-| Tauri/dev server → Console | `console-runtime.v1` candidate | Tauri `get_console_runtime_config` 只读取环境候选；TS 必须再次做 schema/loopback 校验 | 只读取配置 |
+| Tauri/dev server → Console | `console-runtime.v1` candidate | Tauri `get_console_runtime_config` 只读取环境候选；TS 必须再次做 schema/loopback 校验；Tauri CSP 另允许固定内部 `http://ipc.localhost` bridge origin，不作为 API/部署 endpoint | 只读取配置 |
 
 `ControlPlaneError` 只保留结构化 `code`、`message`、`request_id`、`retryable`、HTTP status
 和脱敏 details；不会把 token、Cookie、绝对路径或屏幕帧写入 UI。schema 漂移由 OpenAPI/事件
@@ -161,3 +161,23 @@ URL 和端口不能编译进资源。浏览器回归只证明 loopback mock 控�
 待办：建立 `console.control-plane-client.test.v1` harness；为递归子模块建立独立书页；
 补 host/provider/deployment consumer 的明确接线决策；补慢连接/Abort/跨进程恢复负向证据；
 完成 Tauri 原生窗口人工验收，并在未来 exposure 变更前完成认证/TLS/RBAC/CSRF/WS 握手认证。
+
+## 9. 2026-09-03 release runtime/IPC/WS smoke
+
+本次程序化 release 运行证据追加在 [`CP-20260903-console-tauri-acceptance.md`](../checkpoints/CP-20260903-console-tauri-acceptance.md)
+和 `.runtime/r2-console-tauri-release-20260903/`。release binary
+`apps/console/src-tauri/target/release/human-assist-console.exe` 在显式 loopback API
+端口 `59701` 下启动，WebView2 CDP 使用 `50131`，SHA-256 为
+`22F50D6BAC64C029E904B5BA56157CC83CBFA457443EB11C17C379B9051F2358`。生成的 CSP 只
+允许固定内部 `http://ipc.localhost` 与本次注入的 API/WS loopback origin；不增加外部
+host、通配符或 API CORS 来源。
+
+`browser-evidence.json` 显示 1 个合成设备、1 条提醒和 2 条审计；5 个 REST URL、一个
+sync 帧和 2 个 CloudEvent 帧均被观察，console/page errors 为 0。release 窗口关闭后，
+`runtime-after-stop.json` 记录 `closeMainWindow=true`、release/API 目标进程和监听均已
+消失，仅保留用户 `entity1`/ADB。该结果属于程序化 runtime/IPC/WS smoke，不是用户
+人工签收；此前 dev/旧 release 运行记录只作为历史证据保留。Tauri 用户人工验收、真实
+APK 和真实只读 provider 仍是待确认门槛。
+
+与本模块相关的下一项跨模块门槛是 `entity3 + entity5` 低资源双实例固定窗口；完成前
+不启动 `entity4`，不激活 helper/provider，也不改变 loopback exposure 或部署默认值。
