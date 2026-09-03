@@ -240,3 +240,9 @@ commit `95.979%` 前触发保护并精确退出，未完成 boot；第四实例�
 `max_devices` 或部署默认值。正式 planner 输入前，必须建立独立第二个低资源 writable
 clone，完成低资源双实例固定窗口与受保护 `1 -> 2 -> 4` ramp，并分别记录 GPU/I/O 和
 目标宿主机差异。详细证据见 `docs/checkpoints/CP-20260903-low-resource-profile.md`。
+
+GPU renderer follow-up（详见 `docs/checkpoints/CP-20260903-gpu-renderer.md`）确认：
+`-gpu host` 可使用宿主 NVIDIA GPU，`-gpu swiftshader_indirect` 可使用内置 SwiftShader，
+均通过 5 分钟离线 Settings smoke。`opengl32sw.dll` 缺失使 `-gpu software` legacy 路径
+仍为风险；这些结果不进入容量公式或部署默认值，必须与 I/O、温度和按进程 GPU 归因分开
+记录。

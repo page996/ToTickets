@@ -267,3 +267,33 @@ backend 的混合证据），以及 WER `RADAR_PRE_LEAK_64` 事件早于 clone r
 工作树以外产物或真实平台能力的证明。第 95--103 行的 `B80C...`、第 169--174 行的
 加速/AVD 预检和第 184--189 行的 R1 构建哈希均保留为各自时间点的历史快照；当前
 canonical 构建哈希仍以“最新隔离门禁复验”一节为准。
+
+## 2026-09-03 GPU renderer follow-up
+
+独立 GPU checkpoint [`CP-20260903-gpu-renderer.md`](checkpoints/CP-20260903-gpu-renderer.md)
+补充了低资源候选的图形后端证据。宿主 Emulator 37.1.11 已包含 Vulkan SwiftShader 与
+llvmpipe 组件；旧式 `opengl32sw.dll` 缺失，因此 `-gpu software` 的 legacy OpenGL
+路径仍标为缺口。没有复制 DLL 或重装 SDK，也没有改变生产依赖。
+
+- `-gpu host` 在 300 秒/30 样本窗口中选中 NVIDIA RTX 5080，Free RAM 最低 11.826 GiB，
+  commit `86.44--87.67%`，QEMU Private `3.508--3.560 GiB`。
+- `-gpu swiftshader_indirect` 在同样窗口中选中内置 SwiftShader，Free RAM 最低 11.252 GiB，
+  commit `86.82--88.49%`，QEMU Private `3.622--3.661 GiB`。
+- 两种模式均完成 6 周期 Settings 启动/截图/内存 smoke，未发送输入命令；该证据是系统
+  App 离线观察，不代表真实大麦 APK 兼容性或人工购票验收。
+
+因此，`host` 作为本机 GPU 加速候选，`swiftshader_indirect` 作为可复现 fallback；两者
+都不构成并发容量或部署默认值。当前发布状态继续为 `verified_with_gap`，下一门槛仍是第二个
+低资源 writable clone、固定时长 repeat/soak、I/O/温度/按进程 GPU 归因、mock APK
+test-only harness 和人工 Console/Tauri 验收。当前现场只保留 loopback `ticket_test_1`；
+`entity3` 的测试锁已按精确停止后改名归档，`entity4` 未启动。
+
+### 2026-09-03 最新隔离构建产物
+
+本轮在动态 loopback 配置下重新执行 workspace test、typecheck/build、mock load self-test、
+合规/SBOM、Rust fmt/check/clippy 和 Tauri `build --no-bundle`，全部通过；API 为
+`19 suites/203 tests`，Console 为 `9 files/81 tests`。当前 release executable
+`apps/console/src-tauri/target/release/human-assist-console.exe` 的 SHA-256 为
+`A00419BFBC175C42CCF7ACCB5379358DA7C1BB21C63035061B5BE3FC058F365C`。该哈希只代表本次
+构建时间点；旧的 `5E074D...`、`B80C...` 和历史哈希均保留其原始时点，SBOM 哈希仍为
+`40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B`。

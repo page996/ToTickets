@@ -240,6 +240,11 @@ provider-host 仍按本路线图的未完成门槛执行。
 在上述选择完成前，不启动 `entity4`，不把双实例观察写成 `safe_instances=2`，也不激活
 真实 helper/provider。人工验收完成后仍按既定顺序进入 SQLite；系统通知策略最后单独讨论。
 
+GPU follow-up 已在 `docs/checkpoints/CP-20260903-gpu-renderer.md` 登记：`host` 可选中
+宿主 NVIDIA GPU，`swiftshader_indirect` 可选中内置 SwiftShader；两者只作为低资源 profile
+候选输入。缺失 `opengl32sw.dll` 的 legacy software 路径仍是风险，不改变 provider、
+`safe_instances`、`max_devices` 或部署默认值。
+
 ### 2026-09-03 低资源 profile 评估结果
 
 用户已选择低资源优先。对独立 `entity3` 完成两种 operator-run 候选观察：单独传入
