@@ -1,6 +1,6 @@
 # 实施路线图
 
-## 当前状态（截至 2026-09-03；历史段落按各自时间标注）
+## 当前状态（截至 2026-09-05；历史段落按各自时间标注）
 
 已由仓库实现和测试确认：pnpm workspace 与隔离工具链、NestJS mock 控制平面、
 Tauri + React 控制台基线、内存 repository、`MockDeviceAdapter`、严格且仅允许

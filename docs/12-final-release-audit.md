@@ -10,12 +10,15 @@
 
 本文开头的审计表是 2026-09-01 的历史基线；后续日期章节是不可覆盖的追加事实，不能
 把不同时间点的测试数字或产物哈希混作同一轮结果。当前可复核状态为：项目隔离工具链
-复验 API 19 suites/203 tests、Console 9 files/81 tests 通过；最近一次隔离重建的 release
-executable 哈希为 `832948...`（实际运行验收时点为 `22F50D...`），SBOM 哈希为
-`40E5C54F...`；Gate C 当前
+复验 API 19 suites/203 tests、Console 9 files/81 tests 通过；截至本摘要日期最近一次隔离重建的
+release executable 哈希为 `1B4D3F8358596C7EFD40C972341A824CEF54007EEDDF9C7F127DA58A83E6A1AF`，
+SBOM 哈希为 `40E5C54F...`；Gate C 当前
 profile 已取得双实例约 15 分钟量级观察证据，但第三实例启动峰值触发保护，仍为
 `verified_with_gap`，对外暴露继续限制为 loopback。2026-09-04 的 APK 静态评估已完成，
 但候选因来源/signer 未锚定、仅 ARMv7 和 zipalign 失败而被拒绝，未安装到任何设备。
+
+此前 `2026-09-03` 隔离重建的 release executable 哈希 `83294804715AB2259439AF4F00DE3416F195D549268BEB679EE1E06F5FF1B7D2`
+及实际运行验收时点的 `22F50D...` 均为各自历史时间点证据，不是本摘要日期的当前构建。
 
 ## 通过项
 
@@ -431,3 +434,10 @@ SBOM current/self-test、Rust fmt/check/clippy 和 Tauri `build --no-bundle` 均
 endpoint 和第一次 clippy 参数解析各触发一次预期命令层失败，纠正后通过；没有启动 API/Vite/
 Tauri 窗口、ADB、AVD、APK 或 helper。`2026-09-04T16:09:21Z` 收尾复核无 adb/emulator/qemu
 进程和目标监听。
+
+### 在线推送核验（不可覆盖追加）
+
+2026-09-04T16:14:16Z（UTC）执行只读 `git ls-remote origin refs/heads/main`，返回
+`afd8496fb19b3884b690fb4565abe19dce918199 refs/heads/main`，与本地提交
+`afd8496fb19b3884b690fb4565abe19dce918199` 一致。该核验覆盖本节之前的第一版文档提交；
+后续本节追加提交的远端状态仍需以新的 `git ls-remote` 结果为准。

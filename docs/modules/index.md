@@ -1,7 +1,7 @@
 # 模块登记索引
 
 **索引版本**：`module-registry.v1`
-**更新时间**：2026-09-03
+**更新时间**：2026-09-05
 **证据基线**：`bdf9a3f`（本阶段开始）；本阶段 checkpoint：
 `docs/checkpoints/CP-20260902-module-governance-baseline.md`
 
