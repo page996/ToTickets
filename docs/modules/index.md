@@ -42,6 +42,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `M12-deployment-state` | `apps/api/src/deployments` | active（仅 mock-only 实现；真实执行未启用） | partial | `CP-20260902-module-governance-baseline :: M12-extension` | `/api/v1/deployments*`、deployment state/events（版本化） | `deployment-service.spec.ts`、`deployment-api.spec.ts`、OpenAPI contract | 独立 provider-host、认证/TLS/RBAC；不得把本行视为真实部署授权 |
 | `M13-system-helper-policy` | `apps/api/src/helpers`、`config/system-helper-manifest*.json` | active（策略/校验；无 helper 启用） | partial | `CP-20260902-host-preflight :: M13`；`CP-20260902-gate-c-ramp-2-4 :: M13`；`CP-20260903-gate-c-multi-followup :: M13`；`CP-20260903-gate-c-baseline-15m :: M13` | `system-helper-manifest.v1`（版本化配置；当前空 allowlist） | `helper-manifest.spec.ts` | 目标宿主机 provenance/hash、R2 批准、provider-host 生命周期与资源隔离 |
+| `M14-apk-provenance-gate` | [`apk-provenance-gate.md`](apk-provenance-gate.md)；operator-run `.runtime/apk-evaluation-*` | active（仅来源/静态核验；无安装连接） | partial | `CP-20260903-apk-source-evaluation`；`CP-20260904-apk-static-gate`；`CP-20260905-documentation-gate-revalidation` | `apk-provenance-gate.v1` 文档模型；无生产 API | 当前仅 operator-run；合成 APK test-only harness planned | 官方/主流来源、signer 锚点、静态报告；未来仅对 `install_eligible` 工件另行申请设备安装 |
 
 ## 已登记的示范模块书
 
@@ -51,6 +52,7 @@
 | `M7-adapter-layer` | [`device-adapter.md`](device-adapter.md) | DeviceAdapter port、Mock lifecycle、只读 preview 和真实 adapter 门槛 | implementation active；governance partial | `CP-20260902-module-governance-baseline :: M7`；`CP-20260903-release-handoff :: M7` |
 | `CON-C3-control-plane-client` | [`console-control-plane-client.md`](console-control-plane-client.md) | Console REST transport、事件流、runtime boundary、refresh 协调及其子模块清单 | implementation active；governance partial | `CP-20260902-module-governance-baseline :: CON-C3` |
 | `M13-system-helper-policy` | [`system-helper-manifest.md`](system-helper-manifest.md) | 版本化 helper provenance/能力/路径/资源策略与默认拒绝校验 | implementation active；governance partial | `CP-20260902-host-preflight :: M13`；`CP-20260902-gate-c-ramp-2-4 :: M13`；`CP-20260903-gate-c-multi-followup :: M13`；`CP-20260903-gate-c-baseline-15m :: M13` |
+| `M14-apk-provenance-gate` | [`apk-provenance-gate.md`](apk-provenance-gate.md) | 来源、隔离下载、签名/manifest/ABI/扫描门禁与安装资格交接 | implementation active (operator-run only)；governance partial | `CP-20260903-apk-source-evaluation :: M14`；`CP-20260904-apk-static-gate :: M14`；`CP-20260905-documentation-gate-revalidation :: M14` |
 
 其余模块尚未拥有独立书页。此状态是治理缺口，不是实现失败；在逐模块书和 test-only
 harness 建立前，不能把索引中的 `active` 解读为“模块独立化已完成”。
@@ -161,3 +163,17 @@ checkpoint 与被忽略的 `.runtime/r2-avd-entity5-20260903/`；本索引不授
 本次 CSP 中的 `http://ipc.localhost` 仍是 Tauri 固定内部 IPC origin；API/WS loopback
 只属于运行时注入证据，不构成远程 exposure。下一门槛为 `entity3 + entity5` 低资源双
 实例固定窗口及受保护 ramp；索引不授权启动 `entity4` 或激活 helper/provider。
+
+## 2026-09-04 APK provenance gate 追加
+
+以下追加项只登记 APK 供应链研究证据，不改变 M7/M13 的设备与 helper 权限，也不代表真实
+平台适配器已经启用：
+
+| 模块 | 新增 checkpoint/证据 | 本次程序化结果 | 仍待完成 |
+| --- | --- | --- | --- |
+| `M14-apk-provenance-gate` | `CP-20260904-apk-static-gate`；`.runtime/apk-evaluation-20260903/static-20260904/` | 应用宝派生 CDN 候选 `cn.damai` 9.0.32，APK SHA-256 `626F6643A82F49A080D0998DEC51D4B0815DF23A68A2AB72BE088959BF95AB2F`；ZIP 12,466 条目全量可读；v2 签名数学有效；Defender clean | URL 未被商店下载字段独立锚定；signer 无可信基线；仅 `armeabi-v7a`；4/16 KB zipalign 失败；人工权限/组件复核、可验证 ABI；未来仅对 `install_eligible` 工件另行申请安装批准 |
+
+本轮结论固定为 `rejected / signature_valid_identity_unanchored`，`install_allowed=false`。
+APK 不进入 Git、SBOM、发布物或 helper allowlist；用户登录、验证码和 App 内所有操作仍由
+用户人工完成。下一步只有在取得可信 signer/ABI 证据并建立新的设备 checkpoint 后，才可
+讨论 entity5 的人工安装观察。

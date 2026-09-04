@@ -6,7 +6,7 @@
 
 运行时地址、端口、配置文件和临时目录均由环境变量或运行时 fixture 注入；本文不定义部署默认地址。`/api/v1` 与 `/api/v1/events` 仅是版本化协议路径。
 
-## 当前状态摘要（截至 2026-09-03）
+## 当前状态摘要（截至 2026-09-05）
 
 本文开头的审计表是 2026-09-01 的历史基线；后续日期章节是不可覆盖的追加事实，不能
 把不同时间点的测试数字或产物哈希混作同一轮结果。当前可复核状态为：项目隔离工具链
@@ -14,7 +14,8 @@
 executable 哈希为 `832948...`（实际运行验收时点为 `22F50D...`），SBOM 哈希为
 `40E5C54F...`；Gate C 当前
 profile 已取得双实例约 15 分钟量级观察证据，但第三实例启动峰值触发保护，仍为
-`verified_with_gap`，对外暴露继续限制为 loopback。
+`verified_with_gap`，对外暴露继续限制为 loopback。2026-09-04 的 APK 静态评估已完成，
+但候选因来源/signer 未锚定、仅 ARMv7 和 zipalign 失败而被拒绝，未安装到任何设备。
 
 ## 通过项
 
@@ -24,8 +25,8 @@ profile 已取得双实例约 15 分钟量级观察证据，但第三实例启�
 - 本轮部署状态控制与契约测试作为收尾提交推送到
   `https://github.com/page996/ToTickets`，未使用 force push；截至
   `2026-09-02T19:36:45Z`（UTC）只读 `git ls-remote origin refs/heads/main` 返回
-  `64b7b1700d5fc8d8d685f9291792f20160a69a12`。后续本地文档更正提交的推送状态见末尾
-  “在线引用复核补充”及对应 checkpoint。
+  `64b7b1700d5fc8d8d685f9291792f20160a69a12`。这是历史远端快照，不包含本次尚未提交/推送的
+  APK 文档；本次提交后的远端状态须以末尾追加的在线核验记录为准。
 
 ## 桌面回归
 
@@ -378,3 +379,55 @@ fmt/check/clippy 和 Tauri `build --no-bundle` 均通过。SBOM 自测为 `1143`
 `40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B`。前述运行验收 hash
 `22F50D...` 属于 `59701` CSP 构建时点，二者均保留且不能互相替代，也不构成 bit-for-bit
 可复现承诺。
+
+## 2026-09-04 APK 静态来源门禁
+
+本节追加用户批准的应用宝来源研究结果；详细不可覆盖记录见
+[`CP-20260904-apk-static-gate.md`](checkpoints/CP-20260904-apk-static-gate.md)，M14 边界见
+[`apk-provenance-gate.md`](modules/apk-provenance-gate.md)。本阶段只完成隔离下载和静态
+核验，没有启动 AVD、安装或运行真实 App，也没有登录、输入、抓包、逆向或调用私有接口。
+
+- 应用宝页面声明 `cn.damai` 9.0.32、`109959714` bytes、MD5
+  `9A7D35E181CFE078E8A2AFDEE4394F10`，但其 `download_url`/`apk_url` 为空。候选 CDN URL
+  由元数据推导，不能记为页面直接锚定的下载链。
+- 隔离 APK 的 SHA-256 为
+  `626F6643A82F49A080D0998DEC51D4B0815DF23A68A2AB72BE088959BF95AB2F`；ZIP `12466` 个条目
+  全量可读、失败 `0`，v2 签名数学验证通过，Defender 未发现威胁。
+- signer SHA-256 为
+  `4ACD9A208AF31123608CF1355AC63D53E27547387E4E254BCD232E72EFE2E3C9`，但没有独立可信
+  身份基线；APK 仅含 `armeabi-v7a`，目标 x86_64/现有 arm64 转译路径无法证明兼容；
+  4 KB 与 16 KB zipalign 均失败。58 项权限和约 79 个 exported 组件仍需在可信工件上
+  人工复核。
+- `apkanalyzer manifest permissions` 的内部 `aapt dump badging` 返回码为 `1`；这项工具
+  偏差已保留在原始报告中，权限统计采用独立成功的 `aapt2 dump permissions`（退出码 `0`），
+  不能将该单项失败解读为整个静态门禁通过。
+
+综合结论为 `rejected / signature_valid_identity_unanchored`，`install_allowed=false`。
+用户批准来源研究和负责人工登录不改变该 fail-closed 结论；该 APK 未进入 entity5、Git、
+SBOM、发布物或 helper allowlist。一次只读 `adb devices -l` 自动启动的 SDK ADB daemon
+PID `12208` 已用同一 SDK 清理，收尾复核无 adb/emulator/qemu 进程或相关监听。
+
+上述“无进程/无监听”是 `CP-20260904-apk-static-gate` 收尾时点
+`2026-09-04T15:43:16Z` 的现场证据，不是永久运行状态声明。
+
+若继续真实 App 兼容性观察，下一门槛是从官方设备/商店取得可独立验证的 APK、SHA-256、
+`apksigner`/signer 基线和可解释的 ABI/对齐证据，重新通过 M14 后再申请专用 entity5 安装
+阶段。真实登录、验证码、页面输入、选票、下单和支付始终由用户人工完成。该阻断不妨碍
+独立推进用户人工 Console/Tauri 签收；验收后仍按既定顺序进入 SQLite，系统通知策略最后
+单独讨论。
+
+## 2026-09-05 文档与隔离门禁复验
+
+本次接管后的文档修订和隔离复验记录于
+[`CP-20260905-documentation-gate-revalidation.md`](checkpoints/CP-20260905-documentation-gate-revalidation.md)。
+修订只涉及审计/治理文档；没有改变生产代码、依赖、运行时配置或 APK 决策。使用项目 `.tools`
+wrapper、动态 loopback 测试变量和无监听构建 fixture 重跑后，API `19 suites/203 tests`、
+Console `9 files/81 tests`、typecheck/build、mock load self-test、合规主检查及 self-test、
+SBOM current/self-test、Rust fmt/check/clippy 和 Tauri `build --no-bundle` 均通过。
+
+本次构建 release executable SHA-256 为
+`1B4D3F8358596C7EFD40C972341A824CEF54007EEDDF9C7F127DA58A83E6A1AF`；SBOM SHA-256 仍为
+`40E5C54F09A03B0146FB0D091E3FE3905C811FFB611D77251BB32F204A1AD56B`。直接运行未注入测试
+endpoint 和第一次 clippy 参数解析各触发一次预期命令层失败，纠正后通过；没有启动 API/Vite/
+Tauri 窗口、ADB、AVD、APK 或 helper。`2026-09-04T16:09:21Z` 收尾复核无 adb/emulator/qemu
+进程和目标监听。

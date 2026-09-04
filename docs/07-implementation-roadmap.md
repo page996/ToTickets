@@ -291,3 +291,30 @@ Google APIs `x86_64`，运行时参数为 `-lowram -cores 2 -memory 2048 -gpu ho
 的人工验收门槛仍在。下一门槛改为先对 `entity3 + entity5` 做低资源双实例固定窗口，
 再按保护规则执行 `1 -> 2 -> 4` ramp，并补齐 GPU/I/O、温度、磁盘写入和目标宿主机
 preflight；不启动 `entity4`，不改变 helper/provider 默认值。
+
+## 2026-09-04 APK 来源评估追加
+
+用户已批准从应用宝获取应用，且明确由用户本人处理登录；本阶段只完成隔离下载和静态门禁，
+没有安装或启动真实 App。应用宝页面记录 `cn.damai` 9.0.32、声明大小 `109959714` bytes、
+MD5 `9A7D35E181CFE078E8A2AFDEE4394F10`，但 `download_url`/`apk_url` 为空；本轮候选 CDN URL
+由该元数据推导，故来源身份仍未被页面直链独立确认。
+
+受控 HTTPS GET 得到工件 SHA-256
+`626F6643A82F49A080D0998DEC51D4B0815DF23A68A2AB72BE088959BF95AB2F`，ZIP 12,466 条目全量
+读取成功，`apksigner` v2 数学验证通过，Defender 未发现威胁。但 manifest 仅有
+`armeabi-v7a` native libraries，4 KB/16 KB `zipalign` 均失败，signer（RSA 1024，
+`4ACD9A208AF31123608CF1355AC63D53E27547387E4E254BCD232E72EFE2E3C9`）没有独立可信基线，
+并解析出 58 项权限和约 79 个 exported 组件。详细证据见
+`docs/checkpoints/CP-20260904-apk-static-gate.md` 和 M14 模块书。
+
+因此该候选状态为 `rejected / signature_valid_identity_unanchored`，不进入 entity5，
+不改变当前 x86_64 低资源 AVD、helper 白名单、provider 默认值或 loopback 暴露边界。后续
+门槛是用户提供可独立验证的官方/商店 APK 及 signer/ABI 基线，随后才可另立 checkpoint 申请
+entity5 的人工安装观察；真实登录、验证码、输入、购票和支付始终不自动化。
+
+## 2026-09-05 文档与隔离门禁复验
+
+`CP-20260905-documentation-gate-revalidation` 记录了本次治理文档修订后的隔离复验：API
+`19 suites/203 tests`、Console `9 files/81 tests`、typecheck/build、mock load、合规/SBOM、
+Rust 和 Tauri `build --no-bundle` 均通过。该 checkpoint 只确认文档与既有 mock 控制平面门禁，
+不改变 APK 的 `rejected` 结论、低资源 AVD 容量判断、helper/provider 默认值或 loopback 边界。
