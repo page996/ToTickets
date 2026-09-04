@@ -70,6 +70,9 @@ base_git_commit: `ba6e3b2eecebe1c5b547d2a9329d013a23b35d28`
 `5128419cd23fc29b50adc63f50a9579c1a5720d8 refs/heads/main`，与本阶段最终本地提交一致。
 该提交已推送到 `origin/main`；随后工作树为 clean。未启动或改变设备、服务、APK 或 helper。
 
+本段记录的核验对象为上一版最终审计追加提交 `6b9a91985d2ad2bee7e8a72d888329684d50e3af`；
+记录本身的后续提交会推进 `origin/main`，因此最终 ref 以该提交完成后的只读在线复核为准。
+
 ## Next gate
 
 项目仍为 `verified_with_gap`，对外仍只允许 loopback。APK 候选仍为
