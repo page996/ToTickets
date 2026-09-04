@@ -64,6 +64,12 @@ base_git_commit: `ba6e3b2eecebe1c5b547d2a9329d013a23b35d28`
 `2026-09-05`。该补正只改变文档摘要标签，不改变构建产物、测试结果、APK 决策或 loopback
 边界。提交后须重新执行远端 ref 在线核验并追加结果，不覆盖此前的远端证据。
 
+## 最终远端核验（不可覆盖追加）
+
+`2026-09-04T16:25:24Z`（UTC）执行只读 `git ls-remote origin refs/heads/main`，返回
+`5128419cd23fc29b50adc63f50a9579c1a5720d8 refs/heads/main`，与本阶段最终本地提交一致。
+该提交已推送到 `origin/main`；随后工作树为 clean。未启动或改变设备、服务、APK 或 helper。
+
 ## Next gate
 
 项目仍为 `verified_with_gap`，对外仍只允许 loopback。APK 候选仍为

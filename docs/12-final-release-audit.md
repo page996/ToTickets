@@ -441,3 +441,9 @@ Tauri 窗口、ADB、AVD、APK 或 helper。`2026-09-04T16:09:21Z` 收尾复核�
 `afd8496fb19b3884b690fb4565abe19dce918199 refs/heads/main`，与本地提交
 `afd8496fb19b3884b690fb4565abe19dce918199` 一致。该核验覆盖本节之前的第一版文档提交；
 后续本节追加提交的远端状态仍需以新的 `git ls-remote` 结果为准。
+
+### 最终提交在线核验（不可覆盖追加）
+
+`2026-09-04T16:25:24Z`（UTC）执行只读 `git ls-remote origin refs/heads/main`，返回
+`5128419cd23fc29b50adc63f50a9579c1a5720d8 refs/heads/main`，与本地最终提交一致。
+该提交包含本摘要 current release hash 修正及日期元数据同步；工作树随后保持干净。
